@@ -1,26 +1,151 @@
 @import "tailwindcss";
 
+/* ════════════════════════════════════════════════════════════════
+   Smart CAUTI GUARD — Design tokens
+   อ้างอิง Web Application Specification v1.0 ส่วนที่ 9
+   ════════════════════════════════════════════════════════════════ */
+
+@theme {
+  --font-sans: var(--font-sarabun), ui-sans-serif, system-ui, sans-serif;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* พื้นผิวและตัวอักษร */
+  --bg:        #F4F8FC;
+  --surface:   #FFFFFF;
+  --surface-2: #EBF2FA;
+  --text:      #1A2332;
+  --muted:     #566B82;
+  --border:    #C8D8EA;
+  --rule:      #DCE8F4;
+
+  /* สีหลักของระบบ */
+  --primary:   #1558A0;
+  --primary-d: #114A88;
+  --teal:      #0A7E6E;
+
+  /* สีเชิงความหมาย — แยกจากสี accent ของแบรนด์ */
+  --pass:      #0A7552;
+  --pass-bg:   #F0FDF8;
+  --correct:   #B86200;
+  --correct-bg:#FFFBEB;
+  --review:    #C41E1E;
+  --review-bg: #FEF2F2;
+
+  color-scheme: light;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
+/* โหมดมืด — จำเป็นสำหรับเวรดึก ห้องผู้ป่วยแสงน้อย */
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  :root:not([data-theme="light"]) {
+    --bg:        #0E1720;
+    --surface:   #162030;
+    --surface-2: #1C293D;
+    --text:      #DDE8F5;
+    --muted:     #93ADC8;
+    --border:    #2A3F58;
+    --rule:      #223349;
+
+    --primary:   #4F94DA;
+    --primary-d: #3C80C6;
+    --teal:      #2BBFAA;
+
+    --pass:      #34D399;
+    --pass-bg:   #0A2420;
+    --correct:   #FBB040;
+    --correct-bg:#2A1E00;
+    --review:    #F87171;
+    --review-bg: #2D1010;
+
+    color-scheme: dark;
   }
 }
 
+:root[data-theme="dark"] {
+  --bg:        #0E1720;
+  --surface:   #162030;
+  --surface-2: #1C293D;
+  --text:      #DDE8F5;
+  --muted:     #93ADC8;
+  --border:    #2A3F58;
+  --rule:      #223349;
+  --primary:   #4F94DA;
+  --primary-d: #3C80C6;
+  --teal:      #2BBFAA;
+  --pass:      #34D399;
+  --pass-bg:   #0A2420;
+  --correct:   #FBB040;
+  --correct-bg:#2A1E00;
+  --review:    #F87171;
+  --review-bg: #2D1010;
+  color-scheme: dark;
+}
+
+* { -webkit-tap-highlight-color: transparent; }
+
+html, body { height: 100%; }
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  /* เว้นพื้นที่ให้แถบระบบของมือถือ */
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Focus ต้องมองเห็นได้ชัดเสมอ — ผู้ใช้บางคนใช้ keyboard บน dashboard */
+:where(button, a, input, textarea, select):focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── Utility classes ที่ใช้ซ้ำทั้งแอป ───────────────────────────── */
+
+.surface {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: #fff;
+  border-radius: 10px;
+  font-weight: 700;
+  min-height: 52px;
+  transition: background .15s;
+}
+.btn-primary:active:not(:disabled) { background: var(--primary-d); }
+.btn-primary:disabled { opacity: .45; }
+
+/* ปุ่มตอบ CHECK 5 — touch target 48px ขึ้นไป เพราะพยาบาลอาจสวมถุงมือ */
+.answer-btn {
+  min-height: 48px;
+  min-width: 72px;
+  border-radius: 10px;
+  border: 2px solid var(--border);
+  background: var(--surface-2);
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 15px;
+  transition: all .12s;
+}
+.answer-btn[data-selected="yes"] {
+  border-color: var(--pass);
+  background: var(--pass-bg);
+  color: var(--pass);
+}
+.answer-btn[data-selected="no"] {
+  border-color: var(--review);
+  background: var(--review-bg);
+  color: var(--review);
 }
