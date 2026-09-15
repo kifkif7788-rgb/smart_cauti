@@ -26,7 +26,9 @@ export function LoginForm() {
 
       if (!response.ok) {
         const data = (await response.json().catch(() => ({}))) as { error?: string };
-        setError(data.error ?? 'เข้าสู่ระบบไม่สำเร็จ');
+        setError(data.error ?? (response.status >= 500
+          ? 'ระบบเข้าสู่ระบบขัดข้อง กรุณาติดต่อผู้ดูแลระบบ'
+          : 'เข้าสู่ระบบไม่สำเร็จ กรุณาลองใหม่'));
         setPin('');
         setBusy(false);
         return;

@@ -11,7 +11,7 @@ import {
 /** ข้อความเดียวกันทั้งกรณีไม่พบผู้ใช้และ PIN ผิด เพื่อไม่บอกใบ้ว่ารหัสใดมีอยู่จริง */
 const INVALID_MESSAGE = 'รหัสบุคลากรหรือ PIN ไม่ถูกต้อง';
 
-export async function POST(request: NextRequest) {
+async function login(request: NextRequest) {
   let body: unknown;
   try {
     body = await request.json();
@@ -26,6 +26,20 @@ export async function POST(request: NextRequest) {
   }
   if (!isValidPinFormat(pin)) {
     return Response.json({ error: 'PIN ต้องเป็นตัวเลข 6 หลัก' }, { status: 400 });
+  }
+
+  const missing = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'SESSION_SECRET']
+    .filter((key) => !process.env[key]?.trim());
+  if (process.env.SESSION_SECRET && process.env.SESSION_SECRET.length < 32) {
+    missing.push('SESSION_SECRET (minimum 32 characters)');
+  }
+  if (missing.length > 0) {
+    // Log variable names only, never their values or the submitted PIN.
+    console.error('[login] Invalid server configuration:', missing.join(', '));
+    return Response.json(
+      { error: 'ระบบยังตั้งค่าการเข้าสู่ระบบไม่ครบ กรุณาติดต่อผู้ดูแลระบบ' },
+      { status: 503 },
+    );
   }
 
   const { data: user, error } = await db()
@@ -67,4 +81,17 @@ export async function POST(request: NextRequest) {
   });
 
   return Response.json({ user: session });
+}
+
+/** Always return JSON so deployment failures have a usable error in the login UI. */
+export async function POST(request: NextRequest) {
+  try {
+    return await login(request);
+  } catch (error) {
+    console.error('[login] Unexpected server failure:', error instanceof Error ? error.name : 'UnknownError');
+    return Response.json(
+      { error: 'ระบบเข้าสู่ระบบขัดข้อง กรุณาติดต่อผู้ดูแลเพื่อตรวจสอบการตั้งค่าเซิร์ฟเวอร์' },
+      { status: 500 },
+    );
+  }
 }

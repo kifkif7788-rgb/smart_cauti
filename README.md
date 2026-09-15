@@ -125,6 +125,22 @@ npm test        # รัน test ทั้งหมด
    โดย `NEXT_PUBLIC_BASE_URL` ต้องเป็น URL จริงของระบบ
 3. deploy แล้ว**สร้าง URL ป้ายใหม่** ด้วย `NEXT_PUBLIC_BASE_URL` ที่ถูกต้องก่อนพิมพ์ป้าย
 
+### หาก deploy แล้ว Login ไม่สำเร็จ
+
+`.env.local` ไม่ได้อยู่ใน Git จึงต้องตั้งค่าใน Vercel → Project Settings → Environment Variables ให้ตรงกับ environment ของ deployment (Production หรือ Preview):
+
+| ตัวแปร | ค่าที่ใช้ |
+|---|---|
+| `SUPABASE_URL` | URL ของ Supabase project เดียวกับเครื่อง local |
+| `SUPABASE_SERVICE_ROLE_KEY` | server service role key ของ project นั้น |
+| `SESSION_SECRET` | secret ความยาวอย่างน้อย 32 ตัวอักษร |
+| `QR_SECRET` | ค่าเดิมที่ใช้เซ็นป้าย QR |
+| `NEXT_PUBLIC_BASE_URL` | URL เว็บจริง เช่น `https://smartcauti.vercel.app` |
+
+สามตัวแรกจำเป็นสำหรับ Login อีกสองตัวใช้กับ QR อย่าใส่เครื่องหมายคำพูดครอบค่าใน Vercel และอย่าเพิ่ม `NEXT_PUBLIC_` ให้ secret หลัง Save ต้อง Redeploy เพื่อให้ deployment ใหม่ใช้ค่าเหล่านี้
+หากใช้ Supabase project เดิม ไม่ต้องรัน seed ใหม่และใช้ PIN เดิมได้
+หากยังมีปัญหา ดู Runtime Logs ของ `/api/auth/login`: โค้ดจะบอกชื่อตัวแปรที่ขาดโดยไม่ log ค่า secret หรือ PIN
+
 ตรวจก่อนเปิดใช้จริง:
 
 - [ ] `SUPABASE_SERVICE_ROLE_KEY` ไม่ได้ขึ้นต้นด้วย `NEXT_PUBLIC_`

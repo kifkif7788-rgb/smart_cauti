@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { UiIcon } from './UiIcon';
 import { LogoutButton } from './LogoutButton';
+import { getSession } from '@/lib/auth';
 
 interface Props {
   title?: string;
@@ -8,7 +9,8 @@ interface Props {
   subtitle?: string;
 }
 
-export function AppHeader({ title, backHref, subtitle }: Props) {
+export async function AppHeader({ title, backHref, subtitle }: Props) {
+  const session = await getSession();
   return (
     <header className="app-header">
       <div className="app-header-inner">
@@ -18,6 +20,9 @@ export function AppHeader({ title, backHref, subtitle }: Props) {
           <summary aria-label="เปิดเมนู"><UiIcon name="menu"/></summary>
           <nav aria-label="เมนูหลัก">
             <Link href="/"><UiIcon name="home"/>หน้าหลัก</Link>
+            {session?.role === 'ADMIN' && (
+              <Link href="/admin/tags"><UiIcon name="qr"/>สร้าง QR</Link>
+            )}
             <Link href="/scan"><UiIcon name="arrow"/>สแกน QR</Link>
             <Link href="/learn"><UiIcon name="book"/>สื่อการเรียนรู้</Link>
             <LogoutButton />

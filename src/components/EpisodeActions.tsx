@@ -18,13 +18,15 @@ interface Props {
   insertDate: string;
 }
 
-type Panel = 'none' | 'close' | 'transfer';
+type Panel = 'none' | 'remove' | 'discharge' | 'transfer';
+
+const DISCHARGE_REASONS = ['จำหน่ายผู้ป่วย', 'ย้ายหอผู้ป่วย', 'ผู้ป่วยเสียชีวิต'];
 
 /**
- * ปุ่มจัดการผู้ป่วยที่เตียงนี้ — ปิดรายการ และย้ายเตียง
+ * ปุ่มจัดการผู้ป่วยที่เตียงนี้ — ย้ายเตียง ถอดสาย และจำหน่าย
  *
  * วางไว้ท้ายหน้าประเมินโดยตั้งใจ ไม่ใช่ด้านบน เพราะงานหลักของหน้านี้
- * คือการประเมิน CHECK 5 ส่วนสองปุ่มนี้ใช้นาน ๆ ครั้ง
+ * คือการประเมิน CHECK 5 ส่วนปุ่มเหล่านี้ใช้นาน ๆ ครั้ง
  * และการกดพลาดมีผลต่อข้อมูล catheter-days
  */
 export function EpisodeActions({
@@ -47,7 +49,20 @@ export function EpisodeActions({
 
   const freeBeds = beds.filter((b) => !b.occupied && b.bedNo !== bedNo);
 
+  const isDischarge = panel === 'discharge';
+  const closeReasons = REMOVAL_REASONS.filter((item) =>
+    isDischarge ? DISCHARGE_REASONS.includes(item) : !DISCHARGE_REASONS.includes(item),
+  );
+
+  function openPanel(next: Panel) {
+    setError(null);
+    setReason(next === 'discharge' ? 'จำหน่ายผู้ป่วย' : '');
+    setRemoveDate(today);
+    setPanel(next);
+  }
+
   async function closeEpisode() {
+    if (busy || !reason || !closeReasons.some((item) => item === reason) || !removeDate) return;
     setBusy(true);
     setError(null);
     try {
@@ -102,22 +117,27 @@ export function EpisodeActions({
       </h2>
 
       {panel === 'none' && (
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-3 gap-2">
           <button
             type="button"
-            onClick={() => setPanel('transfer')}
+            onClick={() => openPanel('transfer')}
             className="surface px-3 py-4 text-center text-[14px] font-bold"
           >
-            <span className="mb-1 block text-xl" aria-hidden="true">🛏️</span>
             ย้ายเตียง
           </button>
           <button
             type="button"
-            onClick={() => setPanel('close')}
+            onClick={() => openPanel('remove')}
             className="surface px-3 py-4 text-center text-[14px] font-bold"
           >
-            <span className="mb-1 block text-xl" aria-hidden="true">✔️</span>
-            ถอดสาย / จำหน่าย
+            ถอดสาย
+          </button>
+          <button
+            type="button"
+            onClick={() => openPanel('discharge')}
+            className="surface px-3 py-4 text-center text-[14px] font-bold"
+          >
+            จำหน่าย
           </button>
         </div>
       )}
@@ -213,9 +233,9 @@ export function EpisodeActions({
       )}
 
       {/* ── ปิดรายการ ─────────────────────────────────────────────── */}
-      {panel === 'close' && (
+      {(panel === 'remove' || panel === 'discharge') && (
         <div className="surface p-4">
-          <h3 className="text-sm font-extrabold">ถอดสาย / จำหน่ายผู้ป่วย</h3>
+          <h3 className="text-sm font-extrabold">{isDischarge ? 'จำหน่ายผู้ป่วย' : 'ถอดสายสวนปัสสาวะ'}</h3>
           <p
             className="mt-1.5 rounded-lg px-3 py-2.5 text-[12.5px] leading-relaxed"
             style={{ background: 'var(--surface-2)', color: 'var(--muted)' }}
@@ -225,7 +245,7 @@ export function EpisodeActions({
 
           <span className="mt-3 block text-[13px] font-bold">เหตุผล</span>
           <div className="mt-1.5 flex flex-col gap-2">
-            {REMOVAL_REASONS.map((item) => (
+            {closeReasons.map((item) => (
               <button
                 key={item}
                 type="button"
@@ -244,7 +264,7 @@ export function EpisodeActions({
           </div>
 
           <label htmlFor="remove-date" className="mt-3 block text-[13px] font-bold">
-            วันที่ถอดสาย / จำหน่าย
+            {isDischarge ? 'วันที่จำหน่าย / ออกจากหอผู้ป่วย' : 'วันที่ถอดสาย'}
           </label>
           <input
             id="remove-date"
@@ -257,8 +277,9 @@ export function EpisodeActions({
             style={fieldStyle}
           />
           <p className="mt-1.5 text-[12.5px]" style={{ color: 'var(--muted)' }}>
-            หากถอดสายไปก่อนหน้านี้แล้วเพิ่งมาบันทึก ให้แก้วันที่ให้ตรงความจริง
-            เพราะจำนวนวันคาสายใช้คำนวณตัวชี้วัดของโครงการ
+            {isDischarge
+              ? 'ระบุวันที่จำหน่ายหรือออกจากหอผู้ป่วยตามจริง ระบบจะสิ้นสุดการติดตามรายการนี้'
+              : 'หากถอดสายไปก่อนหน้านี้แล้วเพิ่งมาบันทึก ให้แก้วันที่ให้ตรงความจริง เพราะจำนวนวันคาสายใช้คำนวณตัวชี้วัดของโครงการ'}
           </p>
 
           {error && (
@@ -274,12 +295,12 @@ export function EpisodeActions({
           <div className="mt-4 space-y-2.5">
             <button
               type="button"
-              disabled={busy || !reason}
+              disabled={busy || !reason || !removeDate}
               onClick={closeEpisode}
               className="w-full rounded-[10px] text-[15px] font-bold text-white"
               style={{ minHeight: '52px', background: 'var(--review)', opacity: !reason ? 0.45 : 1 }}
             >
-              {busy ? 'กำลังปิดรายการ…' : 'ยืนยันปิดรายการ'}
+              {busy ? 'กำลังบันทึก…' : isDischarge ? 'ยืนยันจำหน่ายผู้ป่วย' : 'ยืนยันถอดสาย'}
             </button>
             <button
               type="button"

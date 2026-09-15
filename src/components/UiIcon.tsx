@@ -1,10 +1,11 @@
 import type { SVGProps } from 'react';
 
-export type IconName = 'need' | 'fix' | 'flow' | 'below' | 'closed' | 'home' | 'menu' | 'chart' | 'bell' | 'shield' | 'send' | 'check' | 'alert' | 'message' | 'arrow' | 'user' | 'book' | 'logout';
+export type IconName = 'need' | 'fix' | 'flow' | 'below' | 'closed' | 'home' | 'menu' | 'chart' | 'bell' | 'shield' | 'send' | 'check' | 'alert' | 'message' | 'arrow' | 'user' | 'book' | 'logout' | 'qr';
 
 /** One consistent stroke icon set for the bedside interface. */
 export function UiIcon({ name, ...props }: SVGProps<SVGSVGElement> & { name: IconName }) {
   const paths: Record<IconName, React.ReactNode> = {
+    qr: <><rect x="4" y="4" width="9" height="9" rx="1"/><rect x="19" y="4" width="9" height="9" rx="1"/><rect x="4" y="19" width="9" height="9" rx="1"/><path d="M19 19h4v4h5m-9 0v5h4m5 0v-1M8 8h1m14 0h1M8 23h1"/></>,
     logout: <><path d="M14 5H5v22h9m-1-11h16m-6-6 6 6-6 6"/></>,
     need: <><rect x="6" y="5" width="20" height="24" rx="3"/><rect x="11" y="3" width="10" height="5" rx="2" fill="currentColor" stroke="none"/><path d="m10 13 1 1 2-2m3 1h6m-12 6h3m3 0h6m-12 5h3m3 0h6"/></>,
     fix: <><path d="m10 22 12-12m-8-4 12 12M7 13l6-6a5 5 0 0 1 7 7L9 25a4 4 0 0 1-6-6l6-6m10 6 6-6a4 4 0 0 0-6-6"/><path d="m14 14 4 4"/></>,

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { qrInputPath } from '@/lib/qr-input';
 
 type BarcodeDetectorLike = {
   detect: (source: CanvasImageSource) => Promise<Array<{ rawValue: string }>>;
@@ -35,22 +36,19 @@ export function QrScanner() {
 
   const [cameraFailed, setCameraFailed] = useState<string | null>(null);
   const [manualCode, setManualCode] = useState('');
+  const [scanError, setScanError] = useState<string | null>(null);
   const [manualError, setManualError] = useState<string | null>(null);
 
   const handleResult = useCallback(
     (value: string) => {
       if (handledRef.current) return;
 
-      // QR บรรจุ URL เต็ม — ดึงเฉพาะ path เพื่อไม่ให้ redirect ออกนอกโดเมน
-      let path: string;
-      try {
-        const url = new URL(value);
-        path = `${url.pathname}${url.search}`;
-      } catch {
-        path = value.startsWith('/') ? value : `/s/${value}`;
+      const path = qrInputPath(value);
+      if (!path) {
+        setScanError('QR นี้ไม่ใช่รหัสเตียงที่รองรับ ใช้รหัสเช่น SM-B02 หรือ QR จากระบบ');
+        return;
       }
-
-      if (!/^\/s\/[A-Z]{2}-B\d{2}(\?|$)/.test(path)) return;
+      setScanError(null);
 
       handledRef.current = true;
       if (navigator.vibrate) navigator.vibrate(40);
@@ -153,7 +151,7 @@ export function QrScanner() {
   function submitManual(event: React.FormEvent) {
     event.preventDefault();
     const code = manualCode.trim().toUpperCase();
-    if (!/^[A-Z]{2}-B\d{2}$/.test(code)) {
+    if (!/^[A-Z]{2}-B(?:0[1-9]|[1-9][0-9])$/.test(code)) {
       setManualError('รูปแบบรหัสไม่ถูกต้อง ต้องเป็นเช่น SM-B01');
       return;
     }
@@ -163,6 +161,7 @@ export function QrScanner() {
 
   return (
     <main className="mx-auto max-w-2xl px-4 pb-16 pt-4">
+      {scanError && <p role="alert" className="mb-3 rounded-xl px-4 py-3 text-sm" style={{ background: 'var(--correct-bg)', color: 'var(--correct)' }}>{scanError}</p>}
       {!cameraFailed ? (
         <>
           <div
