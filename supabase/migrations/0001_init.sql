@@ -1,5 +1,5 @@
 -- ════════════════════════════════════════════════════════════════════
---  Smart CAUTI GUARD — Initial schema
+--  Smart CAUTI — Initial schema
 --  อ้างอิง: Web Application Specification v1.0 ส่วนที่ 7 (Data Model)
 --
 --  หลักการสำคัญด้าน PDPA:

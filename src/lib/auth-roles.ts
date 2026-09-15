@@ -14,14 +14,6 @@ export function canAlwaysSeeDashboard(role: UserRole): boolean {
   return DASHBOARD_ROLES.includes(role);
 }
 
-/**
- * ผู้ประเมิน (AUDITOR) ต้องไม่เห็น feedback ในทุกโหมด
- * เพื่อให้ observation เป็นอิสระจาก intervention
- */
-export function isBlindAssessor(role: UserRole): boolean {
-  return role === 'AUDITOR';
-}
-
 /** แหล่งข้อมูลของการประเมิน — แยกข้อมูลผู้ประเมินออกจากพยาบาลเพื่อวิเคราะห์ */
 export function sourceForRole(role: UserRole): 'NURSE' | 'AUDITOR' {
   return role === 'AUDITOR' ? 'AUDITOR' : 'NURSE';

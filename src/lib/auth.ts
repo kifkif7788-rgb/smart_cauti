@@ -24,7 +24,7 @@ const SESSION_HOURS = 12;
 const KEY_LENGTH = 32;
 
 export type { UserRole } from './auth-roles';
-export { canAlwaysSeeDashboard, isBlindAssessor, sourceForRole } from './auth-roles';
+export { canAlwaysSeeDashboard, sourceForRole } from './auth-roles';
 
 import type { UserRole } from './auth-roles';
 

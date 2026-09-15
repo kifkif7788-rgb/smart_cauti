@@ -1,14 +1,4 @@
-/**
- * Study Mode — โหมดการเก็บข้อมูลของโครงการวิจัย
- *
- * โครงการใช้รูปแบบ one-group pretest–posttest จึงต้องเก็บข้อมูล CHECK 5
- * ในช่วง baseline โดย "ไม่แสดง feedback" แก่ผู้ปฏิบัติงาน
- *
- * กติกาสำคัญ (spec ส่วนที่ 3 และ 8):
- *   ในโหมด BASELINE เซิร์ฟเวอร์ต้องไม่ส่ง feedback กลับมาใน response เลย
- *   ไม่ใช่แค่ให้ client ซ่อน — มิฉะนั้น intervention รั่วผ่าน network inspection
- *   หรือผ่าน bug ของ client ได้ ซึ่งจะทำให้ข้อมูล baseline ใช้ไม่ได้ทั้งชุด
- */
+/** โหมดโครงการใช้จัดกลุ่มข้อมูล การแสดงผลและคำแนะนำเปิดทุกโหมด */
 
 import 'server-only';
 import { db } from './db';

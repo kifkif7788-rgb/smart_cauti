@@ -1,7 +1,6 @@
 import type { NextRequest } from 'next/server';
 import { db, writeAudit } from '@/lib/db';
 import { getSession } from '@/lib/auth';
-import { getActiveStudy } from '@/lib/study';
 import { CHECK5_KEYS, evaluateCheck5, type Check5Key } from '@/lib/check5';
 import type { ActionStatusDb } from '@/types/database';
 
@@ -25,15 +24,6 @@ export async function POST(
   const session = await getSession();
   if (!session) {
     return Response.json({ error: 'กรุณาเข้าสู่ระบบ' }, { status: 401 });
-  }
-
-  // ในช่วง baseline ยังไม่มีการแสดง feedback จึงไม่ควรมีการบันทึกการแก้ไข
-  const study = await getActiveStudy();
-  if (study.current_mode === 'BASELINE') {
-    return Response.json(
-      { error: 'ยังไม่เปิดใช้การบันทึกการแก้ไขในช่วงเก็บข้อมูลพื้นฐาน' },
-      { status: 409 },
-    );
   }
 
   const { id } = await ctx.params;

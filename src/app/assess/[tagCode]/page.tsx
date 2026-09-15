@@ -12,6 +12,7 @@ import { isValidTagCode } from '@/lib/qr';
 import { AppHeader } from '@/components/AppHeader';
 import { Check5Form } from '@/components/Check5Form';
 import { EpisodeActions } from '@/components/EpisodeActions';
+import { InvalidTag } from '@/components/InvalidTag';
 
 export default async function AssessPage(props: PageProps<'/assess/[tagCode]'>) {
   const session = await getSession();
@@ -27,8 +28,19 @@ export default async function AssessPage(props: PageProps<'/assess/[tagCode]'>) 
     .eq('is_active', true)
     .maybeSingle();
 
-  // เตียงว่าง — พาไปหน้าลงทะเบียนผู้ป่วยแทนการแสดงข้อผิดพลาด
-  if (!episode) redirect(`/bind/${tagCode}`);
+  if (!episode) {
+    // ป้ายไม่มีอยู่จริง (เช่น พิมพ์รหัสผิดตอนกรอกเอง) — แจ้งทันทีแทนที่จะไปเจอ 404 ที่หน้า bind
+    const { data: tag } = await db()
+      .from('tag')
+      .select('tag_code')
+      .eq('tag_code', tagCode)
+      .eq('is_retired', false)
+      .maybeSingle();
+    if (!tag) return <InvalidTag reason="ไม่พบรหัสป้ายนี้ในระบบ กรุณาตรวจสอบรหัสอีกครั้ง" />;
+
+    // เตียงว่าง — พาไปหน้าลงทะเบียนผู้ป่วยแทนการแสดงข้อผิดพลาด
+    redirect(`/bind/${tagCode}`);
+  }
 
   // การเปิดดูข้อมูลผู้ป่วยต้องสืบย้อนได้ตามนโยบายข้อมูลส่วนบุคคล
   await writeAudit({

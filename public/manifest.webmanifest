@@ -1,6 +1,6 @@
 {
-  "name": "Smart CAUTI GUARD",
-  "short_name": "CAUTI GUARD",
+  "name": "Smart CAUTI",
+  "short_name": "CAUTI",
   "description": "ระบบบันทึกและติดตามการปฏิบัติตาม CAUTI Maintenance Bundle",
   "start_url": "/",
   "scope": "/",

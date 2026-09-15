@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { BundleIcon, UiIcon } from '@/components/UiIcon';
 import { CHECK5_ITEMS, type Check5Key } from '@/lib/check5';
 import { queueAssessment, type QueuedAssessment } from '@/lib/offline';
 
@@ -18,33 +19,28 @@ export interface EpisodeSummary {
 
 interface Props {
   episode: EpisodeSummary;
-  /** โหมด BASELINE จะไม่พาไปหน้าผลลัพธ์ แต่กลับหน้าแรกพร้อมข้อความยืนยัน */
+  /** โหมดบันทึกข้อมูลโครงการ; ทุกโหมดเปิดหน้าผลหลังบันทึกสำเร็จ */
   studyMode: 'BASELINE' | 'INTERVENTION';
   assessedThisShift: boolean;
   /** ปุ่มจัดการผู้ป่วย (ย้ายเตียง / ปิดรายการ) แสดงท้ายหน้า */
   children?: React.ReactNode;
+  /** Only used by the development design preview; never writes an assessment. */
+  preview?: boolean;
 }
 
 type AnswerState = Partial<Record<Check5Key, boolean>>;
 
-const ITEM_ACCENT: Record<Check5Key, string> = {
-  need: '#1558A0',
-  fix: '#6D28D9',
-  flow: '#C2670A',
-  below: '#BE185D',
-  closed: '#0A7E6E',
-};
-
 export function Check5Form({
   episode,
-  studyMode,
   assessedThisShift,
   children,
+  preview = false,
 }: Props) {
   const router = useRouter();
   const [answers, setAnswers] = useState<AnswerState>({});
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [previewSaved, setPreviewSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showMissing, setShowMissing] = useState(false);
 
@@ -94,6 +90,8 @@ export function Check5Form({
       return;
     }
 
+    if (preview) { setPreviewSaved(true); return; }
+
     setSubmitting(true);
     setError(null);
 
@@ -120,11 +118,7 @@ export function Check5Form({
       const data = (await response.json()) as { assessmentId: string };
       sessionStorage.removeItem(draftKey);
 
-      if (studyMode === 'BASELINE') {
-        router.push('/?saved=1');
-      } else {
-        router.push(`/result/${data.assessmentId}`);
-      }
+      router.push(`/result/${data.assessmentId}`);
       return;
     } catch (submitError) {
       // ออฟไลน์หรือเซิร์ฟเวอร์ไม่ตอบ — เก็บเข้าคิวแทนการทิ้งข้อมูล
@@ -148,87 +142,9 @@ export function Check5Form({
   }
 
   return (
-    <div className="pb-28">
-      {/* ── แถบข้อมูลผู้ป่วย ─────────────────────────────────────── */}
-      <section className="surface mx-4 mt-4 overflow-hidden">
-        <div
-          className="flex items-center gap-3 px-4 py-3"
-          style={{ background: 'var(--surface-2)' }}
-        >
-          {/* เลขเตียงเด่นที่สุด เพราะเป็นสิ่งที่พยาบาลใช้ยืนยันว่าสแกนถูกเตียง */}
-          <div
-            className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-xl"
-            style={{ background: 'var(--primary)' }}
-          >
-            <span className="text-[9px] font-bold tracking-wider text-white/75">เตียง</span>
-            <span className="text-xl font-extrabold leading-none text-white tabular-nums">
-              {episode.bedNo}
-            </span>
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-[11px] font-bold tracking-wider" style={{ color: 'var(--muted)' }}>
-              HN
-            </div>
-            <div className="truncate text-lg font-extrabold tabular-nums">{episode.hn}</div>
-          </div>
-          <div
-            className="shrink-0 rounded-xl px-3 py-2 text-center"
-            style={{
-              background: episode.foleyDay >= 3 ? 'var(--correct-bg)' : 'var(--surface)',
-              border: `1.5px solid ${episode.foleyDay >= 3 ? 'var(--correct)' : 'var(--border)'}`,
-            }}
-          >
-            <div
-              className="text-[10px] font-bold tracking-wider"
-              style={{ color: episode.foleyDay >= 3 ? 'var(--correct)' : 'var(--muted)' }}
-            >
-              FOLEY DAY
-            </div>
-            <div
-              className="text-xl font-extrabold tabular-nums"
-              style={{ color: episode.foleyDay >= 3 ? 'var(--correct)' : 'var(--text)' }}
-            >
-              {episode.foleyDay}
-            </div>
-          </div>
-        </div>
-
-        <dl className="grid grid-cols-2 gap-x-4 gap-y-2 px-4 py-3 text-sm">
-          <div>
-            <dt className="text-xs" style={{ color: 'var(--muted)' }}>วันที่ใส่สาย</dt>
-            <dd className="font-semibold">{episode.insertDateTh}</dd>
-          </div>
-          <div>
-            <dt className="text-xs" style={{ color: 'var(--muted)' }}>รหัสงานวิจัย</dt>
-            <dd className="font-semibold">{episode.studyCode}</dd>
-          </div>
-        </dl>
-
-        {episode.foleyDay >= 3 && (
-          <div
-            className="border-t px-4 py-2.5 text-[13px] font-semibold"
-            style={{
-              borderColor: 'var(--rule)',
-              background: 'var(--correct-bg)',
-              color: 'var(--correct)',
-            }}
-          >
-            คาสายมา {episode.foleyDay} วัน — ควรทบทวนข้อบ่งชี้ในข้อ NEED
-          </div>
-        )}
-      </section>
-
-      {assessedThisShift && (
-        <div
-          className="mx-4 mt-3 rounded-xl px-4 py-3 text-[13px]"
-          style={{ background: 'var(--surface-2)', color: 'var(--muted)' }}
-        >
-          ผู้ป่วยรายนี้ได้รับการประเมินในเวรนี้แล้ว หากประเมินซ้ำระบบจะบันทึกเป็นอีกรายการ
-        </div>
-      )}
-
+    <div className="assessment-page pb-28">
       {/* ── ความคืบหน้า ──────────────────────────────────────────── */}
-      <div className="mx-4 mt-5 flex items-center gap-3">
+      <div className="assessment-progress mx-4 mt-5 flex items-center gap-3">
         <div
           className="h-2 flex-1 overflow-hidden rounded-full"
           style={{ background: 'var(--surface-2)' }}
@@ -246,6 +162,29 @@ export function Check5Form({
         </span>
       </div>
 
+      <section className="patient-card" aria-label="ยืนยันข้อมูลผู้ป่วย">
+        <div className="patient-avatar"><UiIcon name="user"/><span>เตียง {episode.bedNo}</span></div>
+        <dl className="patient-details">
+          <div><dt>HN :</dt><dd className="font-bold">{episode.hn}</dd></div>
+          <div><dt>หอผู้ป่วย :</dt><dd>{episode.wardCode}</dd></div>
+          <div><dt>วันที่ใส่สาย :</dt><dd>{episode.insertDateTh}</dd></div>
+          <div><dt>รหัสวิจัย :</dt><dd>{episode.studyCode}</dd></div>
+          <div><dt>Foley Day :</dt><dd><span className="foley-pill" data-review={episode.foleyDay >= 3}>{episode.foleyDay}</span></dd></div>
+        </dl>
+      </section>
+      {episode.foleyDay >= 3 && <p className="foley-reminder"><UiIcon name="bell"/>คาสายมา {episode.foleyDay} วัน — ควรทบทวนข้อบ่งชี้ในข้อ NEED</p>}
+
+      {assessedThisShift && (
+        <div
+          className="mx-4 mt-3 rounded-xl px-4 py-3 text-[13px]"
+          style={{ background: 'var(--surface-2)', color: 'var(--muted)' }}
+        >
+          ผู้ป่วยรายนี้ได้รับการประเมินในเวรนี้แล้ว หากประเมินซ้ำระบบจะบันทึกเป็นอีกรายการ
+        </div>
+      )}
+
+      <div className="check-heading"><h2>CAUTI BUNDLE CHECK 5</h2><p>กรุณาประเมินสภาพผู้ป่วยในวันนี้</p></div>
+
       {/* ── คำถาม 5 ข้อ ─────────────────────────────────────────── */}
       <div className="mt-4 space-y-3 px-4">
         {CHECK5_ITEMS.map((item) => {
@@ -255,34 +194,20 @@ export function Check5Form({
             <fieldset
               key={item.key}
               id={`check5-${item.key}`}
-              className="surface p-4"
+              className="check-card"
+              data-item={item.key}
+              aria-invalid={missing || undefined}
               style={missing ? { borderColor: 'var(--correct)', borderWidth: 2 } : undefined}
             >
               <legend className="sr-only">
                 ข้อ {item.order} {item.label}
               </legend>
 
-              <div className="flex items-start gap-3">
-                <div
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-extrabold text-white"
-                  style={{ background: ITEM_ACCENT[item.key] }}
-                  aria-hidden="true"
-                >
-                  {item.order}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div
-                    className="text-[11px] font-bold tracking-wider"
-                    style={{ color: 'var(--muted)' }}
-                  >
-                    {item.label} · {item.labelTh}
-                  </div>
-                  <p className="mt-0.5 text-[17px] font-bold leading-snug">
-                    {item.question}
-                  </p>
-                  <p className="mt-1 text-[13px]" style={{ color: 'var(--muted)' }}>
-                    {item.hint}
-                  </p>
+              <div className="check-question">
+                <BundleIcon name={item.key}/>
+                <div className="check-copy">
+                  <h3>{item.order}. {item.label}</h3>
+                  <p>{item.question}</p>
                 </div>
               </div>
 
@@ -309,6 +234,8 @@ export function Check5Form({
                 </button>
               </div>
 
+              <details className="check-hint"><summary>แนวทางตรวจสอบ</summary><p>{item.hint}</p></details>
+
               {missing && (
                 <p className="mt-2 text-[13px] font-semibold" style={{ color: 'var(--correct)' }}>
                   ยังไม่ได้ตอบข้อนี้
@@ -319,7 +246,7 @@ export function Check5Form({
         })}
 
         {/* ── หมายเหตุ ──────────────────────────────────────────── */}
-        <div className="surface p-4">
+        <div className="assessment-notes">
           <label htmlFor="assessment-notes" className="text-sm font-bold">
             หมายเหตุ <span style={{ color: 'var(--muted)' }}>(ถ้ามี)</span>
           </label>
@@ -327,7 +254,7 @@ export function Check5Form({
             id="assessment-notes"
             value={notes}
             onChange={(e) => setNotes(e.target.value.slice(0, 500))}
-            rows={3}
+            rows={2}
             placeholder="พิมพ์ข้อสังเกตเพิ่มเติม…"
             className="mt-2 w-full resize-none rounded-lg border px-3 py-2.5 text-[15px]"
             style={{
@@ -340,6 +267,8 @@ export function Check5Form({
             {notes.length}/500
           </div>
         </div>
+
+        {previewSaved && <p role="status" className="surface p-4 text-sm">ตัวอย่าง: ตอบครบ 5 ข้อแล้ว ข้อมูลนี้ไม่ได้ส่งเข้าระบบ</p>}
 
         {error && (
           <div
@@ -372,8 +301,9 @@ export function Check5Form({
             type="button"
             onClick={handleSubmit}
             disabled={submitting}
-            className="btn-primary w-full text-[16px]"
+            className="btn-primary submit-assessment w-full text-[16px]"
           >
+            <UiIcon name="send"/>
             {submitting ? 'กำลังบันทึก…' : complete ? 'ส่งข้อมูล' : `ตอบให้ครบ 5 ข้อ (${answeredCount}/5)`}
           </button>
         </div>

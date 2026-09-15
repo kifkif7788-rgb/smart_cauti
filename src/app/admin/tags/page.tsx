@@ -99,7 +99,7 @@ export default async function TagSheetPage() {
               dangerouslySetInnerHTML={{ __html: card.svg }}
             />
             <div className="tag-meta">
-              <div className="tag-brand">Smart CAUTI GUARD</div>
+              <div className="tag-brand">Smart CAUTI</div>
               <div className="tag-code">{card.tagCode}</div>
             </div>
             <div className="tag-note">สแกนเพื่อประเมิน CHECK 5</div>

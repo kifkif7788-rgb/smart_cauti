@@ -1,17 +1,12 @@
+import { DashboardView } from '@/components/DashboardView';
+import { foleyTrend } from '@/lib/dashboard';
 import { redirect } from 'next/navigation';
-import Link from 'next/link';
 import { getSession, canAlwaysSeeDashboard } from '@/lib/auth';
 import { getActiveStudy, nurseCanSeeDashboard } from '@/lib/study';
 import { db } from '@/lib/db';
-import { foleyDay } from '@/lib/shift';
-import { AppHeader } from '@/components/AppHeader';
+import type { AssessmentRow } from '@/types/database';
+import { currentShiftWindow, foleyDay } from '@/lib/shift';
 
-/**
- * Dashboard — Phase 1 แสดงเฉพาะสถานะปัจจุบันของหอผู้ป่วย
- *
- * ส่วน compliance chart และการเปรียบเทียบ baseline/intervention
- * ยังไม่สร้างในรอบนี้ เพราะต้องมีข้อมูลสะสมก่อนจึงจะออกแบบการแสดงผลได้ถูก
- */
 export default async function DashboardPage() {
   const session = await getSession();
   if (!session) redirect('/login');
@@ -29,81 +24,31 @@ export default async function DashboardPage() {
     .eq('is_active', true)
     .in('ward_code', wardCodes);
 
-  const list = episodes ?? [];
+  if (!episodes) throw new Error('ไม่สามารถโหลดข้อมูลหอผู้ป่วยได้');
+  const list = episodes;
+  const { start, end } = currentShiftWindow();
+  const { data: assessments, error: assessmentError } = list.length ? await db()
+    .from('assessment').select('*').in('episode_id', list.map(e => e.episode_id))
+    .eq('source', 'NURSE').eq('study_mode', study.current_mode)
+    .gte('assessed_at', start.toISOString()).lt('assessed_at', end.toISOString())
+    .order('assessed_at', { ascending: false }) : { data: [], error: null };
+  if (assessmentError) throw new Error('ไม่สามารถโหลดผลการประเมินได้');
+  const latest = new Map<string, AssessmentRow>();
+  for (const row of assessments ?? []) if (!latest.has(row.episode_id)) latest.set(row.episode_id, row);
+  const rows = [...latest.values()];
+  const pass = rows.filter(a => a.all_pass).length;
+  const correct = rows.filter(a => a.feedback === 'CORRECT_NOW').length;
+  const review = rows.filter(a => a.feedback === 'REVIEW_REMOVAL' || a.feedback === 'CLOSED_BREACH').length;
+  const percent = rows.length ? Math.round(pass / rows.length * 100) : null;
+  const colors = ['#2ebd87', '#389df4', '#ffbe2b', '#9770e4', '#ef7e9f'];
+  const dates = foleyTrend([]);
+  const { data: history, error: historyError } = await db().from('episode')
+    .select('insert_date, remove_date').in('ward_code', wardCodes)
+    .lte('insert_date', dates[6].date)
+    .or(`remove_date.is.null,remove_date.gte.${dates[0].date}`);
+  const trend = foleyTrend(history ?? []);
+  const peak = Math.max(1, ...trend.map(p => p.count));
   const longStay = list.filter((e) => foleyDay(e.insert_date) > 3);
 
-  return (
-    <>
-      <AppHeader title="Dashboard" backHref="/" subtitle={wardCodes.join(', ')} />
-      <main className="mx-auto max-w-2xl px-4 pb-16 pt-4">
-        <div className="grid grid-cols-2 gap-3">
-          <div className="surface px-4 py-5 text-center">
-            <div className="text-[11px] font-bold tracking-wider" style={{ color: 'var(--muted)' }}>
-              ผู้ป่วยที่มี FOLEY
-            </div>
-            <div className="mt-1 text-4xl font-extrabold tabular-nums">{list.length}</div>
-            <div className="text-xs" style={{ color: 'var(--muted)' }}>ราย</div>
-          </div>
-          <div
-            className="surface px-4 py-5 text-center"
-            style={longStay.length > 0 ? { borderColor: 'var(--correct)', borderWidth: 2 } : undefined}
-          >
-            <div
-              className="text-[11px] font-bold tracking-wider"
-              style={{ color: longStay.length > 0 ? 'var(--correct)' : 'var(--muted)' }}
-            >
-              FOLEY &gt; 3 วัน
-            </div>
-            <div
-              className="mt-1 text-4xl font-extrabold tabular-nums"
-              style={{ color: longStay.length > 0 ? 'var(--correct)' : 'var(--text)' }}
-            >
-              {longStay.length}
-            </div>
-            <div className="text-xs" style={{ color: 'var(--muted)' }}>ราย</div>
-          </div>
-        </div>
-
-        <div
-          className="mt-4 rounded-xl border-l-4 px-4 py-3 text-[13px] leading-relaxed"
-          style={{ background: 'var(--surface-2)', borderColor: 'var(--primary)' }}
-        >
-          <strong>ส่วน compliance อยู่ระหว่างพัฒนา</strong>
-          {' — '}
-          กราฟ Bundle Compliance รายข้อ และการเปรียบเทียบช่วง baseline กับ intervention
-          จะเพิ่มในรอบถัดไป เมื่อมีข้อมูลสะสมพอที่จะออกแบบการแสดงผลได้เหมาะสม
-        </div>
-
-        {longStay.length > 0 && (
-          <section className="mt-5">
-            <h2 className="mb-2 text-base font-extrabold">ควรทบทวนข้อบ่งชี้</h2>
-            <ul className="space-y-2">
-              {longStay.map((e) => (
-                <li key={e.episode_id} className="surface flex items-center gap-3 px-4 py-3">
-                  <div className="min-w-0 flex-1">
-                    <div className="font-bold">
-                      เตียง {e.bed_no}
-                      <span className="ml-2 text-sm font-normal" style={{ color: 'var(--muted)' }}>
-                        {e.study_code}
-                      </span>
-                    </div>
-                  </div>
-                  <span
-                    className="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold tabular-nums"
-                    style={{ background: 'var(--correct-bg)', color: 'var(--correct)' }}
-                  >
-                    วันที่ {foleyDay(e.insert_date)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-
-        <Link href="/" className="surface mt-5 block px-4 py-4 text-center text-[15px] font-bold">
-          กลับหน้าหลัก
-        </Link>
-      </main>
-    </>
-  );
+  return <DashboardView wardCodes={wardCodes} list={list} rows={rows} pass={pass} correct={correct} review={review} percent={percent} colors={colors} trend={trend} peak={peak} longStay={longStay} historyError={Boolean(historyError)} />;
 }

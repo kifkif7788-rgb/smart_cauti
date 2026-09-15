@@ -1,5 +1,7 @@
 'use client';
 
+import { UiIcon } from '@/components/UiIcon';
+
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { FailedItem, Check5Key } from '@/lib/check5';
@@ -195,7 +197,7 @@ export function CorrectiveActionPanel({
                 onClick={() => submit('CORRECTED')}
                 className="btn-primary w-full text-[15px]"
               >
-                {busy ? 'กำลังบันทึก…' : 'บันทึกว่าแก้ไขแล้ว'}
+                <span className="action-button-label"><UiIcon name="check"/>{busy ? 'กำลังบันทึก…' : 'บันทึกการแก้ไขแล้ว'}</span>
               </button>
             )}
 
@@ -212,7 +214,7 @@ export function CorrectiveActionPanel({
                   background: 'var(--review-bg)',
                 }}
               >
-                แจ้งทีม / แพทย์
+                <span className="action-button-label"><UiIcon name="message"/>แจ้งทีม / แพทย์</span>
               </button>
             )}
 

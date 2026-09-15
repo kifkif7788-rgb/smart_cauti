@@ -9,9 +9,11 @@ export function LoginForm() {
   const [pin, setPin] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [showPinPad, setShowPinPad] = useState(false);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
+    if (busy || !employeeId.trim() || pin.length !== 6) return;
     setBusy(true);
     setError(null);
 
@@ -52,6 +54,7 @@ export function LoginForm() {
           autoComplete="username"
           required
           value={employeeId}
+          onFocus={() => setShowPinPad(false)}
           onChange={(e) => setEmployeeId(e.target.value)}
           className="mt-1.5 w-full rounded-lg border px-3.5 text-[16px]"
           style={{
@@ -71,12 +74,15 @@ export function LoginForm() {
           id="pin"
           name="pin"
           type="password"
-          inputMode="numeric"
-          pattern="\d{6}"
+          inputMode="none"
+          pattern="[0-9]{6}"
           maxLength={6}
           autoComplete="current-password"
           required
           value={pin}
+          onFocus={() => setShowPinPad(true)}
+          aria-controls="pin-keypad"
+          aria-describedby={showPinPad ? 'pin-keypad-help' : undefined}
           onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
           className="mt-1.5 w-full rounded-lg border px-3.5 text-[20px] tracking-[0.4em] tabular-nums"
           style={{
@@ -86,6 +92,29 @@ export function LoginForm() {
             minHeight: '50px',
           }}
         />
+        {showPinPad && (
+          <div id="pin-keypad" className="pin-keypad-panel">
+            <p id="pin-keypad-help">กดตัวเลขเพื่อกรอก PIN 6 หลัก</p>
+            <div className="pin-keypad" role="group" aria-label="แป้นตัวเลข PIN">
+              {['1', '2', '3', '4', '5', '6', '7', '8', '9', 'clear', '0', 'delete'].map((key) => (
+                <button
+                  key={key}
+                  type="button"
+                  disabled={busy || (key === 'clear' || key === 'delete' ? pin.length === 0 : pin.length === 6)}
+                  aria-label={key === 'clear' ? 'ล้าง PIN ทั้งหมด' : key === 'delete' ? 'ลบตัวเลขล่าสุด' : key}
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => {
+                    setError(null);
+                    setPin((value) => key === 'clear' ? '' : key === 'delete' ? value.slice(0, -1) : (value + key).slice(0, 6));
+                  }}
+                  className={key === 'clear' || key === 'delete' ? 'pin-keypad-action' : undefined}
+                >
+                  {key === 'clear' ? 'ล้าง' : key === 'delete' ? '⌫' : key}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {error && (

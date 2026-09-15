@@ -1,3 +1,5 @@
+import { UiIcon } from '@/components/UiIcon';
+import { ScanHero, CareNote } from '@/components/Brand';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { getSession, canAlwaysSeeDashboard } from '@/lib/auth';
@@ -50,7 +52,7 @@ export default async function HomePage() {
     <>
       <AppHeader subtitle={`${session.fullName} · ${SHIFT_LABEL_TH[currentShift()]}`} />
 
-      <main className="mx-auto max-w-2xl px-4 pb-16 pt-4">
+      <main className="home-page mx-auto max-w-2xl px-4 pb-16 pt-4">
         <HomeNotices />
         <OfflineQueueBadge />
 
@@ -60,23 +62,8 @@ export default async function HomePage() {
           </div>
         )}
 
-        {/* ── ปุ่มสแกนหลัก ──────────────────────────────────────── */}
-        <Link
-          href="/scan"
-          className="flex w-full items-center justify-center gap-3 rounded-2xl px-5 py-6 text-white shadow-sm"
-          style={{ background: 'var(--primary)' }}
-        >
-          <svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true">
-            <path
-              d="M3 10V5a2 2 0 012-2h5M20 3h5a2 2 0 012 2v5M27 20v5a2 2 0 01-2 2h-5M10 27H5a2 2 0 01-2-2v-5"
-              stroke="currentColor"
-              strokeWidth="2.4"
-              strokeLinecap="round"
-            />
-            <path d="M3 15h24" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
-          </svg>
-          <span className="text-lg font-extrabold">สแกน QR ที่เตียงผู้ป่วย</span>
-        </Link>
+        <ScanHero />
+        <CareNote />
 
         {/* ── รายการค้างประเมิน ─────────────────────────────────── */}
         <section className="mt-6">
@@ -167,12 +154,12 @@ export default async function HomePage() {
         <nav className="mt-6 grid grid-cols-2 gap-3">
           {showDashboard && (
             <Link href="/dashboard" className="surface px-4 py-4 text-center">
-              <div className="text-2xl" aria-hidden="true">📊</div>
+              <UiIcon name="chart" className="mx-auto"/>
               <div className="mt-1 text-sm font-bold">Dashboard</div>
             </Link>
           )}
           <Link href="/learn" className="surface px-4 py-4 text-center">
-            <div className="text-2xl" aria-hidden="true">📚</div>
+            <UiIcon name="book" className="mx-auto"/>
             <div className="mt-1 text-sm font-bold">สื่อการเรียนรู้</div>
           </Link>
         </nav>

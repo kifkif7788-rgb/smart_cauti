@@ -81,7 +81,7 @@ const addDays = (d, n) => new Date(d.getTime() + n * 86400000);
 
 const lines = [];
 lines.push('-- ════════════════════════════════════════════════════════════');
-lines.push('--  Smart CAUTI GUARD — Seed data');
+lines.push('--  Smart CAUTI — Seed data');
 lines.push(`--  สร้างเมื่อ ${today.toISOString()}`);
 lines.push('--  PIN และ URL ของป้ายถูกพิมพ์ออกทาง stderr ตอนรันสคริปต์');
 lines.push('-- ════════════════════════════════════════════════════════════');
@@ -90,7 +90,7 @@ lines.push('');
 // ── study ────────────────────────────────────────────────────────────
 lines.push('insert into study (name, ward_code, current_mode, baseline_start, study_end)');
 lines.push('values (');
-lines.push(`  ${quote('Smart CAUTI GUARD — หอผู้ป่วยศัลยกรรมชาย')},`);
+lines.push(`  ${quote('Smart CAUTI — หอผู้ป่วยศัลยกรรมชาย')},`);
 lines.push(`  ${quote(WARD)},`);
 lines.push(`  'BASELINE',`);
 lines.push(`  ${quote(iso(today))},`);

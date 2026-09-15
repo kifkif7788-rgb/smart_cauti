@@ -35,6 +35,7 @@ export function QrScanner() {
 
   const [cameraFailed, setCameraFailed] = useState<string | null>(null);
   const [manualCode, setManualCode] = useState('');
+  const [manualError, setManualError] = useState<string | null>(null);
 
   const handleResult = useCallback(
     (value: string) => {
@@ -152,9 +153,12 @@ export function QrScanner() {
   function submitManual(event: React.FormEvent) {
     event.preventDefault();
     const code = manualCode.trim().toUpperCase();
-    if (/^[A-Z]{2}-B\d{2}$/.test(code)) {
-      router.push(`/assess/${code}`);
+    if (!/^[A-Z]{2}-B\d{2}$/.test(code)) {
+      setManualError('รูปแบบรหัสไม่ถูกต้อง ต้องเป็นเช่น SM-B01');
+      return;
     }
+    setManualError(null);
+    router.push(`/assess/${code}`);
   }
 
   return (
@@ -207,27 +211,32 @@ export function QrScanner() {
           <input
             id="tag-code"
             value={manualCode}
-            onChange={(e) => setManualCode(e.target.value.toUpperCase().slice(0, 6))}
+            onChange={(e) => {
+              setManualCode(e.target.value.toUpperCase().slice(0, 6));
+              setManualError(null);
+            }}
             placeholder="SM-B01"
             autoCapitalize="characters"
             autoCorrect="off"
             spellCheck={false}
+            aria-invalid={manualError ? true : undefined}
             className="flex-1 rounded-lg border px-3.5 text-[17px] font-semibold tracking-wider"
             style={{
               background: 'var(--surface-2)',
-              borderColor: 'var(--border)',
+              borderColor: manualError ? 'var(--review)' : 'var(--border)',
               color: 'var(--text)',
               minHeight: '50px',
             }}
           />
-          <button
-            type="submit"
-            disabled={!/^[A-Z]{2}-B\d{2}$/.test(manualCode.trim())}
-            className="btn-primary shrink-0 px-5 text-[15px]"
-          >
+          <button type="submit" className="btn-primary shrink-0 px-5 text-[15px]">
             ไป
           </button>
         </div>
+        {manualError && (
+          <p className="mt-2 text-[13px] font-semibold" style={{ color: 'var(--review)' }}>
+            {manualError}
+          </p>
+        )}
       </form>
     </main>
   );

@@ -7,22 +7,7 @@ import { currentShift, foleyDay } from '@/lib/shift';
 import { buildAssessmentResponseBody } from './response';
 import type { StudyMode } from '@/types/database';
 
-/**
- * บันทึกการประเมิน CHECK 5
- *
- * ── กติกาสำคัญของโครงการวิจัย ───────────────────────────────────────
- * ผลการประเมินถูกคำนวณและบันทึกลงฐานข้อมูล "เสมอ" ทั้งสองโหมด
- * เพราะผู้วิจัยต้องใช้ข้อมูล baseline เปรียบเทียบกับ intervention
- *
- * แต่สิ่งที่ "ส่งกลับ" ไปยัง client ต่างกัน:
- *   INTERVENTION → ส่ง feedback, failedItems, คำแนะนำครบ
- *   BASELINE     → ส่งเฉพาะ assessmentId และเวลา ไม่มีข้อมูล feedback ใด ๆ
- *
- * เหตุผลที่ต้องกันที่ server ไม่ใช่ที่ client: ถ้าส่งลงมาแล้วให้ client ซ่อน
- * พยาบาลที่เปิด devtools หรือ bug ของ client จะทำให้ intervention รั่ว
- * ในช่วง baseline ซึ่งทำให้ข้อมูลทั้งชุดใช้เปรียบเทียบไม่ได้
- * ────────────────────────────────────────────────────────────────────
- */
+/** บันทึกโหมดโครงการตามจริง และส่งผล/คำแนะนำกลับให้ทุก role ในทุกโหมด */
 export async function POST(request: NextRequest) {
   const session = await getSession();
   if (!session) {

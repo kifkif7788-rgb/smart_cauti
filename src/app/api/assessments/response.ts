@@ -1,10 +1,4 @@
-/**
- * สร้าง response body ของการบันทึกการประเมิน
- *
- * แยกออกมาเป็นฟังก์ชันบริสุทธิ์เพื่อให้ทดสอบได้ว่า
- * โหมด BASELINE ไม่มี field ใดที่เกี่ยวกับ feedback หลุดออกไปจริง
- * ซึ่งเป็นเงื่อนไขที่ความถูกต้องของข้อมูลวิจัยทั้งชุดขึ้นอยู่กับ
- */
+/** สร้าง response ผลประเมินรวมคำแนะนำตามนโยบายส่วนกลาง */
 
 import type { Check5Result } from '@/lib/check5';
 import type { StudyMode } from '@/types/database';
@@ -36,7 +30,7 @@ export function buildAssessmentResponseBody(args: {
     duplicate: args.duplicate,
   };
 
-  // ไม่ใช่แค่ตั้งค่าเป็น undefined — ต้องไม่มี key นี้อยู่ใน object เลย
+  // รองรับการไม่เปิดเผยข้อมูลหากนโยบายส่วนกลางเปลี่ยนในอนาคต
   if (!args.reveal) return base;
 
   return {
