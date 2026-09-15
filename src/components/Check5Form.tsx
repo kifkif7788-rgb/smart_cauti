@@ -7,6 +7,7 @@ import { queueAssessment, type QueuedAssessment } from '@/lib/offline';
 
 export interface EpisodeSummary {
   episodeId: string;
+  hn: string;
   studyCode: string;
   bedNo: string;
   wardCode: string;
@@ -20,6 +21,8 @@ interface Props {
   /** โหมด BASELINE จะไม่พาไปหน้าผลลัพธ์ แต่กลับหน้าแรกพร้อมข้อความยืนยัน */
   studyMode: 'BASELINE' | 'INTERVENTION';
   assessedThisShift: boolean;
+  /** ปุ่มจัดการผู้ป่วย (ย้ายเตียง / ปิดรายการ) แสดงท้ายหน้า */
+  children?: React.ReactNode;
 }
 
 type AnswerState = Partial<Record<Check5Key, boolean>>;
@@ -32,7 +35,12 @@ const ITEM_ACCENT: Record<Check5Key, string> = {
   closed: '#0A7E6E',
 };
 
-export function Check5Form({ episode, studyMode, assessedThisShift }: Props) {
+export function Check5Form({
+  episode,
+  studyMode,
+  assessedThisShift,
+  children,
+}: Props) {
   const router = useRouter();
   const [answers, setAnswers] = useState<AnswerState>({});
   const [notes, setNotes] = useState('');
@@ -144,14 +152,24 @@ export function Check5Form({ episode, studyMode, assessedThisShift }: Props) {
       {/* ── แถบข้อมูลผู้ป่วย ─────────────────────────────────────── */}
       <section className="surface mx-4 mt-4 overflow-hidden">
         <div
-          className="flex items-center justify-between gap-3 px-4 py-3"
+          className="flex items-center gap-3 px-4 py-3"
           style={{ background: 'var(--surface-2)' }}
         >
-          <div className="min-w-0">
+          {/* เลขเตียงเด่นที่สุด เพราะเป็นสิ่งที่พยาบาลใช้ยืนยันว่าสแกนถูกเตียง */}
+          <div
+            className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-xl"
+            style={{ background: 'var(--primary)' }}
+          >
+            <span className="text-[9px] font-bold tracking-wider text-white/75">เตียง</span>
+            <span className="text-xl font-extrabold leading-none text-white tabular-nums">
+              {episode.bedNo}
+            </span>
+          </div>
+          <div className="min-w-0 flex-1">
             <div className="text-[11px] font-bold tracking-wider" style={{ color: 'var(--muted)' }}>
-              STUDY ID
+              HN
             </div>
-            <div className="truncate text-lg font-extrabold">{episode.studyCode}</div>
+            <div className="truncate text-lg font-extrabold tabular-nums">{episode.hn}</div>
           </div>
           <div
             className="shrink-0 rounded-xl px-3 py-2 text-center"
@@ -177,12 +195,12 @@ export function Check5Form({ episode, studyMode, assessedThisShift }: Props) {
 
         <dl className="grid grid-cols-2 gap-x-4 gap-y-2 px-4 py-3 text-sm">
           <div>
-            <dt className="text-xs" style={{ color: 'var(--muted)' }}>หอผู้ป่วย / เตียง</dt>
-            <dd className="font-semibold">{episode.wardCode} / {episode.bedNo}</dd>
-          </div>
-          <div>
             <dt className="text-xs" style={{ color: 'var(--muted)' }}>วันที่ใส่สาย</dt>
             <dd className="font-semibold">{episode.insertDateTh}</dd>
+          </div>
+          <div>
+            <dt className="text-xs" style={{ color: 'var(--muted)' }}>รหัสงานวิจัย</dt>
+            <dd className="font-semibold">{episode.studyCode}</dd>
           </div>
         </dl>
 
@@ -336,6 +354,8 @@ export function Check5Form({ episode, studyMode, assessedThisShift }: Props) {
             {error}
           </div>
         )}
+
+        {children}
       </div>
 
       {/* ── ปุ่มส่ง — ติดล่างจอเพื่อให้กดด้วยมือเดียวได้ ─────────── */}

@@ -4,13 +4,14 @@ import { getSession } from '@/lib/auth';
 import { getActiveStudy } from '@/lib/study';
 import { isValidTagCode, verifyTagSignature } from '@/lib/qr';
 import { foleyDay, currentShiftWindow } from '@/lib/shift';
+import { maskHn } from '@/lib/hn';
 
 /**
- * ตรวจป้าย QR แล้วบอกว่าควรพาไปหน้าไหน
+ * ตรวจป้าย QR ประจำเตียงแล้วบอกว่าควรพาไปหน้าไหน
  *
- *   unbound → หน้าผูกป้ายกับผู้ป่วย
- *   bound   → หน้าประเมิน CHECK 5
- *   invalid → ป้ายปลอมหรือลายเซ็นไม่ตรง
+ *   vacant   → เตียงว่าง ไปหน้าลงทะเบียนผู้ป่วย (กรอก HN)
+ *   occupied → มีผู้ป่วยคาสายอยู่ ไปหน้าประเมิน CHECK 5
+ *   invalid  → ป้ายปลอมหรือลายเซ็นไม่ตรง
  */
 export async function GET(request: NextRequest, ctx: RouteContext<'/api/tags/[tagCode]'>) {
   const session = await getSession();
@@ -48,12 +49,19 @@ export async function GET(request: NextRequest, ctx: RouteContext<'/api/tags/[ta
   const { data: episode } = await db()
     .from('episode')
     .select('*')
-    .eq('tag_code', tagCode)
+    .eq('ward_code', tag.ward_code)
+    .eq('bed_no', tag.bed_no)
     .eq('is_active', true)
     .maybeSingle();
 
+  // เตียงว่าง — พร้อมลงทะเบียนผู้ป่วยรายใหม่
   if (!episode) {
-    return Response.json({ status: 'unbound', tagCode, wardCode: tag.ward_code });
+    return Response.json({
+      status: 'vacant',
+      tagCode,
+      wardCode: tag.ward_code,
+      bedNo: tag.bed_no,
+    });
   }
 
   // ประเมินในเวรนี้ไปแล้วหรือยัง
@@ -69,10 +77,12 @@ export async function GET(request: NextRequest, ctx: RouteContext<'/api/tags/[ta
   const study = await getActiveStudy();
 
   return Response.json({
-    status: 'bound',
+    status: 'occupied',
     tagCode,
     episode: {
       episodeId: episode.episode_id,
+      // HN ปิดบังไว้ใน API — หน้าประเมินอ่านจากฐานข้อมูลโดยตรงพร้อม audit log
+      hnMasked: maskHn(episode.hn),
       studyCode: episode.study_code,
       wardCode: episode.ward_code,
       bedNo: episode.bed_no,

@@ -45,12 +45,9 @@ function signTagCode(tagCode) {
   return createHmac('sha256', QR_SECRET).update(tagCode).digest('base64url').slice(0, 12);
 }
 
-const SAFE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-function generateTagCode(prefix) {
-  let suffix = '';
-  const bytes = randomBytes(6);
-  for (let i = 0; i < 6; i += 1) suffix += SAFE_CHARS[bytes[i] % SAFE_CHARS.length];
-  return `${prefix}-${suffix}`;
+/** รหัสป้ายประจำเตียง — เตียง 1 → SM-B01 */
+function tagCodeForBed(prefix, bedNo) {
+  return `${prefix}-B${String(bedNo).padStart(2, '0')}`;
 }
 
 function randomPin() {
@@ -76,7 +73,7 @@ const USERS = [
   { employeeId: 'AD01', fullName: 'ผู้ดูแลระบบ ตัวอย่าง', role: 'ADMIN' },
 ];
 
-const TAG_COUNT = 25; // ตามงบประมาณโครงการ 20–30 ชิ้น
+const BED_COUNT = 30; // เตียง 1–30 ในหอผู้ป่วยศัลยกรรมชาย
 
 const today = new Date();
 const iso = (d) => d.toISOString().slice(0, 10);
@@ -118,17 +115,18 @@ lines.push(userRows.join(',\n') + ';');
 lines.push('');
 
 // ── tags ─────────────────────────────────────────────────────────────
+// หนึ่ง QR ต่อหนึ่งเตียง ไม่ซ้ำกัน ติดถาวรที่เตียง ไม่ผูกกับผู้ป่วย
 const tags = [];
-const seen = new Set();
-while (tags.length < TAG_COUNT) {
-  const code = generateTagCode(TAG_PREFIX);
-  if (seen.has(code)) continue;
-  seen.add(code);
-  tags.push(code);
+for (let bed = 1; bed <= BED_COUNT; bed += 1) {
+  tags.push({ bedNo: String(bed), tagCode: tagCodeForBed(TAG_PREFIX, bed) });
 }
 
-lines.push('insert into tag (tag_code, ward_code) values');
-lines.push(tags.map((c) => `  (${quote(c)}, ${quote(WARD)})`).join(',\n') + ';');
+lines.push('insert into tag (tag_code, ward_code, bed_no) values');
+lines.push(
+  tags
+    .map((t) => `  (${quote(t.tagCode)}, ${quote(WARD)}, ${quote(t.bedNo)})`)
+    .join(',\n') + ';',
+);
 lines.push('');
 
 process.stdout.write(lines.join('\n') + '\n');
@@ -139,10 +137,14 @@ for (const c of credentials) {
   console.error(`  ${c.employeeId.padEnd(6)} ${c.role.padEnd(10)} PIN ${c.pin}   ${c.fullName}`);
 }
 
-console.error(`\n═══ รหัสป้าย QR ${TAG_COUNT} ใบ — URL สำหรับพิมพ์ลงป้าย ═══\n`);
-for (const code of tags) {
-  console.error(`  ${code}   ${BASE_URL}/s/${code}?k=${signTagCode(code)}`);
+console.error(`\n═══ ป้าย QR ประจำเตียง ${BED_COUNT} ใบ (1 QR ต่อ 1 เตียง) ═══\n`);
+for (const t of tags) {
+  console.error(
+    `  เตียง ${t.bedNo.padStart(2)}  ${t.tagCode}   ` +
+      `${BASE_URL}/s/${t.tagCode}?k=${signTagCode(t.tagCode)}`,
+  );
 }
+console.error('\n💡 พิมพ์ป้ายพร้อมเลขเตียงได้ที่หน้า /admin/tags (login เป็น ADMIN)');
 console.error(
   '\n⚠️  URL เหล่านี้ผูกกับ QR_SECRET ปัจจุบัน — ถ้าเปลี่ยน secret ป้ายที่พิมพ์แล้วจะใช้ไม่ได้ทั้งหมด\n',
 );

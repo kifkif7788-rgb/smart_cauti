@@ -2,6 +2,7 @@ import { db } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 import { getActiveStudy } from '@/lib/study';
 import { foleyDay, currentShiftWindow } from '@/lib/shift';
+import { maskHn } from '@/lib/hn';
 
 /**
  * รายการผู้ป่วยที่ยังคาสายในหอ พร้อมสถานะว่าประเมินในเวรนี้แล้วหรือยัง
@@ -20,15 +21,15 @@ export async function GET() {
     .from('episode')
     .select('*')
     .eq('is_active', true)
-    .in('ward_code', wardCodes)
-    .order('bed_no', { ascending: true });
+    .in('ward_code', wardCodes);
 
   if (error) {
     console.error('[episodes/active] อ่านข้อมูลไม่สำเร็จ', error);
     return Response.json({ error: 'อ่านข้อมูลไม่สำเร็จ' }, { status: 500 });
   }
 
-  const list = episodes ?? [];
+  // เรียงตามเลขเตียงแบบตัวเลข — Postgres เรียง text จะได้ 1, 10, 11, 2
+  const list = (episodes ?? []).sort((a, b) => Number(a.bed_no) - Number(b.bed_no));
   const source = session.role === 'AUDITOR' ? 'AUDITOR' : 'NURSE';
   const { start, end } = currentShiftWindow();
 
@@ -51,6 +52,8 @@ export async function GET() {
     shiftEnd: end.toISOString(),
     episodes: list.map((e) => ({
       episodeId: e.episode_id,
+      // ปิดบัง HN ในรายการรวม — หน้าประเมินอ่านค่าเต็มพร้อมบันทึก audit log
+      hnMasked: maskHn(e.hn),
       studyCode: e.study_code,
       tagCode: e.tag_code,
       bedNo: e.bed_no,

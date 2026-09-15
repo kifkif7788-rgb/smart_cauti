@@ -4,6 +4,7 @@ import { getSession, canAlwaysSeeDashboard } from '@/lib/auth';
 import { getActiveStudy, nurseCanSeeDashboard } from '@/lib/study';
 import { db } from '@/lib/db';
 import { foleyDay, currentShiftWindow, currentShift, SHIFT_LABEL_TH } from '@/lib/shift';
+import { maskHn } from '@/lib/hn';
 import { AppHeader } from '@/components/AppHeader';
 import { BaselineBanner } from '@/components/BaselineBanner';
 import { HomeNotices } from '@/components/HomeNotices';
@@ -21,10 +22,10 @@ export default async function HomePage() {
     .from('episode')
     .select('*')
     .eq('is_active', true)
-    .in('ward_code', wardCodes)
-    .order('bed_no', { ascending: true });
+    .in('ward_code', wardCodes);
 
-  const list = episodes ?? [];
+  // เรียงตามเลขเตียงแบบตัวเลข — Postgres เรียง text จะได้ 1, 10, 11, 2
+  const list = (episodes ?? []).sort((a, b) => Number(a.bed_no) - Number(b.bed_no));
   const { start, end } = currentShiftWindow();
 
   const { data: shiftAssessments } = list.length
@@ -114,12 +115,17 @@ export default async function HomePage() {
                       }
                       className="surface flex items-center gap-3 px-4 py-3.5"
                     >
+                      <div
+                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-lg font-extrabold tabular-nums"
+                        style={{ background: 'var(--surface-2)', color: 'var(--primary)' }}
+                        aria-label={`เตียง ${episode.bed_no}`}
+                      >
+                        {episode.bed_no}
+                      </div>
                       <div className="min-w-0 flex-1">
-                        <div className="truncate font-bold">
-                          เตียง {episode.bed_no}
-                          <span className="ml-2 text-sm font-normal" style={{ color: 'var(--muted)' }}>
-                            {episode.study_code}
-                          </span>
+                        {/* ปิดบัง HN ในรายการรวม — แสดงเต็มเฉพาะหน้าประเมินที่ต้องยืนยันตัวผู้ป่วย */}
+                        <div className="truncate font-bold tabular-nums">
+                          HN {maskHn(episode.hn)}
                         </div>
                         <div className="text-[13px]" style={{ color: 'var(--muted)' }}>
                           คาสายวันที่ {day}

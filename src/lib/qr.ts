@@ -45,23 +45,39 @@ export function tagUrl(tagCode: string, baseUrl: string): string {
 }
 
 /**
- * รหัสป้ายต้องเป็นรูปแบบ XX-XXXXXX (ตัวพิมพ์ใหญ่และตัวเลข)
- * เช่น SM-A17K3Q — สองตัวแรกคือรหัสหอผู้ป่วย
+ * รหัสป้ายประจำเตียง — รูปแบบ XX-Bnn
+ *   XX  รหัสหอผู้ป่วยสองตัว เช่น SM
+ *   nn  หมายเลขเตียงสองหลัก 01–99
+ *
+ * เช่น SM-B01 = เตียง 1 ของหอศัลยกรรมชาย
+ *
+ * รหัสอ่านออกโดยตั้งใจ เพราะพยาบาลต้องพิมพ์เองเมื่อกล้องใช้ไม่ได้
+ * และต้องตรวจสอบได้ทันทีว่าสแกนถูกเตียงหรือไม่
+ * ความปลอดภัยมาจาก HMAC ไม่ใช่จากการเดารหัสไม่ได้
  */
-const TAG_CODE_RE = /^[A-Z]{2}-[A-Z0-9]{6}$/;
+const TAG_CODE_RE = /^[A-Z]{2}-B(\d{2})$/;
 
 export function isValidTagCode(value: unknown): value is string {
-  return typeof value === 'string' && TAG_CODE_RE.test(value);
+  if (typeof value !== 'string') return false;
+  const match = TAG_CODE_RE.exec(value);
+  if (!match) return false;
+  const bed = Number(match[1]);
+  return bed >= 1 && bed <= 99;
 }
 
-/** สร้างรหัสป้ายใหม่ — ตัดอักขระที่สับสนง่าย (0/O, 1/I) ออก */
-const SAFE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-
-export function generateTagCode(wardPrefix: string, random: () => number = Math.random): string {
-  const prefix = wardPrefix.toUpperCase().slice(0, 2).padEnd(2, 'X');
-  let suffix = '';
-  for (let i = 0; i < 6; i += 1) {
-    suffix += SAFE_CHARS[Math.floor(random() * SAFE_CHARS.length)];
+/** รหัสป้ายของเตียงที่กำหนด — เตียง 1 → "SM-B01" */
+export function tagCodeForBed(wardPrefix: string, bedNo: number): string {
+  if (!Number.isInteger(bedNo) || bedNo < 1 || bedNo > 99) {
+    throw new Error(`หมายเลขเตียงต้องอยู่ระหว่าง 1–99 (ได้รับ ${bedNo})`);
   }
-  return `${prefix}-${suffix}`;
+  const prefix = wardPrefix.toUpperCase().slice(0, 2).padEnd(2, 'X');
+  return `${prefix}-B${String(bedNo).padStart(2, '0')}`;
+}
+
+/** อ่านหมายเลขเตียงจากรหัสป้าย — คืน null เมื่อรูปแบบไม่ถูกต้อง */
+export function bedNoFromTagCode(tagCode: string): number | null {
+  const match = TAG_CODE_RE.exec(tagCode);
+  if (!match) return null;
+  const bed = Number(match[1]);
+  return bed >= 1 && bed <= 99 ? bed : null;
 }

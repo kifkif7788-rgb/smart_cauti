@@ -21,11 +21,12 @@ export default async function BindPage(props: PageProps<'/bind/[tagCode]'>) {
 
   if (!tag || tag.is_retired) notFound();
 
-  // ถ้าผูกไปแล้วระหว่างที่เปิดหน้านี้ ให้ไปหน้าประเมินเลย
+  // ถ้ามีผู้ป่วยมาลงที่เตียงนี้ระหว่างที่เปิดหน้านี้ ให้ไปหน้าประเมินเลย
   const { data: existing } = await db()
     .from('episode')
     .select('episode_id')
-    .eq('tag_code', tagCode)
+    .eq('ward_code', tag.ward_code)
+    .eq('bed_no', tag.bed_no)
     .eq('is_active', true)
     .maybeSingle();
 
@@ -33,10 +34,15 @@ export default async function BindPage(props: PageProps<'/bind/[tagCode]'>) {
 
   return (
     <>
-      <AppHeader title="ผูกป้ายกับผู้ป่วย" backHref="/" subtitle={tagCode} />
+      <AppHeader
+        title="ลงทะเบียนผู้ป่วย"
+        backHref="/"
+        subtitle={`เตียง ${tag.bed_no} · ${tagCode}`}
+      />
       <BindTagForm
         tagCode={tagCode}
         wardCode={tag.ward_code}
+        bedNo={tag.bed_no}
         today={bangkokDateString()}
       />
     </>

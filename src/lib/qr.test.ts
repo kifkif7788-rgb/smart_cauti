@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 // ต้องตั้ง secret ก่อน import โมดูล เพราะอ่านค่าตอนเรียกใช้
 process.env.QR_SECRET = 'test-qr-secret-value-at-least-32-characters-long';
@@ -7,19 +7,65 @@ const {
   signTagCode,
   verifyTagSignature,
   isValidTagCode,
-  generateTagCode,
+  tagCodeForBed,
+  bedNoFromTagCode,
   tagUrl,
 } = await import('./qr');
 
+describe('tagCodeForBed', () => {
+  it('เติมศูนย์หน้าเลขเตียงหลักเดียว', () => {
+    expect(tagCodeForBed('SM', 1)).toBe('SM-B01');
+    expect(tagCodeForBed('SM', 9)).toBe('SM-B09');
+  });
+
+  it('เตียงสองหลักไม่เติมศูนย์', () => {
+    expect(tagCodeForBed('SM', 10)).toBe('SM-B10');
+    expect(tagCodeForBed('SM', 30)).toBe('SM-B30');
+  });
+
+  it('สร้างรหัสไม่ซ้ำกันสำหรับเตียง 1–30', () => {
+    const codes = new Set<string>();
+    for (let bed = 1; bed <= 30; bed += 1) codes.add(tagCodeForBed('SM', bed));
+    expect(codes.size).toBe(30);
+  });
+
+  it('ปฏิเสธเลขเตียงที่อยู่นอกช่วง', () => {
+    expect(() => tagCodeForBed('SM', 0)).toThrow();
+    expect(() => tagCodeForBed('SM', 100)).toThrow();
+    expect(() => tagCodeForBed('SM', 1.5)).toThrow();
+  });
+});
+
+describe('bedNoFromTagCode', () => {
+  it('อ่านเลขเตียงกลับมาได้', () => {
+    expect(bedNoFromTagCode('SM-B01')).toBe(1);
+    expect(bedNoFromTagCode('SM-B30')).toBe(30);
+  });
+
+  it('ไป-กลับได้ตรงกันทุกเตียง', () => {
+    for (let bed = 1; bed <= 30; bed += 1) {
+      expect(bedNoFromTagCode(tagCodeForBed('SM', bed))).toBe(bed);
+    }
+  });
+
+  it('คืน null เมื่อรูปแบบไม่ถูกต้อง', () => {
+    expect(bedNoFromTagCode('SM-A17K3Q')).toBeNull();
+    expect(bedNoFromTagCode('SM-B00')).toBeNull();
+  });
+});
+
 describe('isValidTagCode', () => {
-  it('รับรูปแบบ XX-XXXXXX', () => {
-    expect(isValidTagCode('SM-A17K3Q')).toBe(true);
+  it('รับรูปแบบรหัสเตียง', () => {
+    expect(isValidTagCode('SM-B01')).toBe(true);
+    expect(isValidTagCode('SM-B30')).toBe(true);
   });
 
   it('ปฏิเสธรูปแบบที่ผิด', () => {
-    expect(isValidTagCode('sm-a17k3q')).toBe(false); // ตัวพิมพ์เล็ก
-    expect(isValidTagCode('SM-A17K3')).toBe(false); // สั้นไป
-    expect(isValidTagCode('SMA17K3Q')).toBe(false); // ไม่มีขีด
+    expect(isValidTagCode('sm-b01')).toBe(false); // ตัวพิมพ์เล็ก
+    expect(isValidTagCode('SM-B00')).toBe(false); // ไม่มีเตียง 0
+    expect(isValidTagCode('SM-B1')).toBe(false); // ไม่เติมศูนย์
+    expect(isValidTagCode('SM-A17K3Q')).toBe(false); // รูปแบบเดิม
+    expect(isValidTagCode('SMB01')).toBe(false);
     expect(isValidTagCode('')).toBe(false);
     expect(isValidTagCode(null)).toBe(false);
   });
@@ -27,53 +73,51 @@ describe('isValidTagCode', () => {
 
 describe('ลายเซ็นของป้าย', () => {
   it('เซ็นแล้วตรวจผ่าน', () => {
-    const code = 'SM-A17K3Q';
-    expect(verifyTagSignature(code, signTagCode(code))).toBe(true);
+    expect(verifyTagSignature('SM-B01', signTagCode('SM-B01'))).toBe(true);
   });
 
-  it('ลายเซ็นของป้ายอื่นใช้ไม่ได้', () => {
-    // กันการเดารหัสป้ายใบอื่นจากป้ายที่มีอยู่ในมือ
-    expect(verifyTagSignature('SM-A17K3Q', signTagCode('SM-B28L4R'))).toBe(false);
+  it('ลายเซ็นของเตียงอื่นใช้ไม่ได้', () => {
+    // รหัสเตียงเดาได้ง่าย ความปลอดภัยจึงอยู่ที่ลายเซ็นทั้งหมด
+    expect(verifyTagSignature('SM-B01', signTagCode('SM-B02'))).toBe(false);
+  });
+
+  it('ทุกเตียงมีลายเซ็นต่างกัน', () => {
+    const signatures = new Set<string>();
+    for (let bed = 1; bed <= 30; bed += 1) {
+      signatures.add(signTagCode(tagCodeForBed('SM', bed)));
+    }
+    expect(signatures.size).toBe(30);
   });
 
   it('ปฏิเสธลายเซ็นว่างหรือความยาวไม่ตรง', () => {
-    expect(verifyTagSignature('SM-A17K3Q', null)).toBe(false);
-    expect(verifyTagSignature('SM-A17K3Q', '')).toBe(false);
-    expect(verifyTagSignature('SM-A17K3Q', 'abc')).toBe(false);
+    expect(verifyTagSignature('SM-B01', null)).toBe(false);
+    expect(verifyTagSignature('SM-B01', '')).toBe(false);
+    expect(verifyTagSignature('SM-B01', 'abc')).toBe(false);
   });
 
   it('ลายเซ็นยาว 12 อักขระและเป็น base64url', () => {
-    const signature = signTagCode('SM-A17K3Q');
+    const signature = signTagCode('SM-B01');
     expect(signature).toHaveLength(12);
     expect(signature).toMatch(/^[A-Za-z0-9_-]{12}$/);
   });
 });
 
-describe('generateTagCode', () => {
-  it('สร้างรหัสที่ผ่าน isValidTagCode เสมอ', () => {
-    for (let i = 0; i < 200; i += 1) {
-      expect(isValidTagCode(generateTagCode('SM'))).toBe(true);
-    }
-  });
-
-  it('ไม่ใช้อักขระที่สับสนง่าย (0/O และ 1/I)', () => {
-    // พยาบาลต้องพิมพ์รหัสนี้ด้วยมือเมื่อกล้องใช้ไม่ได้
-    for (let i = 0; i < 300; i += 1) {
-      const suffix = generateTagCode('SM').split('-')[1];
-      expect(suffix).not.toMatch(/[01OI]/);
-    }
-  });
-});
-
 describe('tagUrl', () => {
   it('สร้าง URL ที่มีลายเซ็นกำกับ', () => {
-    const url = tagUrl('SM-A17K3Q', 'https://cauti.example.th');
-    expect(url).toBe(`https://cauti.example.th/s/SM-A17K3Q?k=${signTagCode('SM-A17K3Q')}`);
+    expect(tagUrl('SM-B01', 'https://cauti.example.th')).toBe(
+      `https://cauti.example.th/s/SM-B01?k=${signTagCode('SM-B01')}`,
+    );
   });
 
   it('ตัด slash ท้าย base URL ไม่ให้เกิด // ซ้อน', () => {
-    expect(tagUrl('SM-A17K3Q', 'https://cauti.example.th/')).toContain(
+    expect(tagUrl('SM-B01', 'https://cauti.example.th/')).toContain(
       'cauti.example.th/s/',
     );
+  });
+
+  it('URL ไม่มีข้อมูลผู้ป่วยใด ๆ — มีเพียงรหัสเตียงกับลายเซ็น', () => {
+    // ป้ายติดอยู่ในตำแหน่งที่ผู้อื่นมองเห็นได้
+    const url = tagUrl('SM-B01', 'https://cauti.example.th');
+    expect(url).not.toMatch(/hn|HN|\d{7}/);
   });
 });

@@ -69,23 +69,43 @@ create index app_user_employee_idx on app_user(employee_id) where is_active;
 
 -- ── tag ─────────────────────────────────────────────────────────────
 -- ป้าย QR กันน้ำ ผูกกับ episode ได้ครั้งละหนึ่ง และนำกลับมาใช้ซ้ำได้
+-- ป้าย QR หนึ่งใบต่อหนึ่งเตียง ติดถาวรที่หัวเตียง ไม่ผูกกับผู้ป่วยรายใด
 create table tag (
   tag_code    text primary key,
   ward_code   text        not null,
+  bed_no      text        not null,
   is_retired  boolean     not null default false,
-  created_at  timestamptz not null default now()
+  created_at  timestamptz not null default now(),
+
+  -- หนึ่งเตียงมีป้ายได้ใบเดียว และหนึ่งป้ายใช้กับเตียงเดียว
+  constraint tag_one_per_bed unique (ward_code, bed_no)
 );
 
-comment on column tag.tag_code is
-  'รหัสป้าย 8 หลัก ไม่สื่อถึงผู้ป่วย เช่น SM-A17K3Q — QR เข้ารหัสด้วย HMAC';
+comment on table tag is
+  'ป้าย QR ประจำเตียง เช่น SM-B01 = เตียง 1 — QR บรรจุเพียงรหัสเตียงกับ HMAC '
+  'ไม่มีข้อมูลผู้ป่วยใด ๆ เพราะป้ายอยู่ในตำแหน่งที่ผู้อื่นมองเห็นได้';
+
+
+-- ── study_code sequence ─────────────────────────────────────────────
+-- Study ID สร้างอัตโนมัติเรียงลำดับ (SM-001, SM-002, …)
+-- ใช้ใน export ข้อมูลวิจัยแทน HN เพื่อให้ชุดข้อมูลที่ส่งออกเป็น de-identified
+create sequence study_code_seq start 1;
 
 
 -- ── episode ─────────────────────────────────────────────────────────
--- ช่วงการคาสายสวนของผู้ป่วยรายหนึ่ง
+-- ช่วงการคาสายสวนของผู้ป่วยรายหนึ่ง ณ เตียงหนึ่ง
 create table episode (
-  episode_id      uuid primary key default gen_random_uuid(),
+  episode_id      uuid  primary key default gen_random_uuid(),
   study_id        uuid  not null references study(study_id),
-  study_code      text  not null,
+
+  -- HN ใช้ในงานประจำวันเพื่อยืนยันตัวผู้ป่วยและเชื่อมข้อมูลกับ HIS
+  -- เก็บในฐานข้อมูลเท่านั้น ไม่เคยปรากฏใน QR และไม่อยู่ในไฟล์ export ของงานวิจัย
+  hn              text  not null,
+
+  -- Study ID สร้างอัตโนมัติ ใช้แทน HN ในทุกการวิเคราะห์และรายงาน
+  study_code      text  not null unique
+                    default 'SM-' || lpad(nextval('study_code_seq')::text, 3, '0'),
+
   tag_code        text  references tag(tag_code),
   ward_code       text  not null,
   bed_no          text  not null,
@@ -94,20 +114,52 @@ create table episode (
   removal_reason  text,
   is_active       boolean not null default true,
   created_by      uuid  not null references app_user(user_id),
+  closed_by       uuid  references app_user(user_id),
   created_at      timestamptz not null default now(),
 
   constraint episode_dates_ok check (remove_date is null or remove_date >= insert_date),
   -- ปิดแล้วต้องมีวันถอดสาย และยัง active ต้องไม่มี
   constraint episode_active_ok check (
     (is_active and remove_date is null) or (not is_active and remove_date is not null)
-  )
+  ),
+  constraint episode_hn_ok check (hn ~ '^[A-Za-z0-9-]{4,15}$')
 );
 
--- ป้ายหนึ่งใบผูกกับ episode ที่ยัง active ได้เพียงรายการเดียว
-create unique index episode_active_tag_idx
-  on episode(tag_code) where is_active and tag_code is not null;
+comment on column episode.hn is
+  'HN ผู้ป่วย — ข้อมูลส่วนบุคคล จำกัดการเข้าถึงตาม role และบันทึก audit log';
+comment on column episode.study_code is
+  'รหัสสำหรับงานวิจัย สร้างอัตโนมัติ — ใช้แทน HN ในทุกไฟล์ export';
+
+-- หนึ่งเตียงมีผู้ป่วยที่คาสายอยู่ได้รายเดียว
+-- ป้องกันการเปิด episode ใหม่ทับรายเดิมที่ยังไม่ได้ปิด
+create unique index episode_active_bed_idx
+  on episode(ward_code, bed_no) where is_active;
 
 create index episode_active_ward_idx on episode(ward_code) where is_active;
+create index episode_hn_idx on episode(hn);
+
+
+-- ── bed_transfer ────────────────────────────────────────────────────
+-- ประวัติการย้ายเตียงของผู้ป่วยที่ยังคาสายอยู่
+--
+-- การย้ายเตียงไม่ใช่การเริ่ม episode ใหม่ — สายสวนเส้นเดิมยังอยู่
+-- จึงต้องคง insert_date และ study_code ไว้ มิฉะนั้น catheter-days
+-- จะถูกรีเซ็ตและตัวเลข Foley Day จะต่ำกว่าความจริง
+create table bed_transfer (
+  transfer_id   uuid primary key default gen_random_uuid(),
+  episode_id    uuid not null references episode(episode_id),
+  from_bed_no   text not null,
+  to_bed_no     text not null,
+  from_tag_code text,
+  to_tag_code   text,
+  reason        text,
+  moved_by      uuid not null references app_user(user_id),
+  moved_at      timestamptz not null default now(),
+
+  constraint bed_transfer_different check (from_bed_no <> to_bed_no)
+);
+
+create index bed_transfer_episode_idx on bed_transfer(episode_id, moved_at desc);
 
 
 -- ── assessment ──────────────────────────────────────────────────────
@@ -196,7 +248,33 @@ alter table study_mode_log      enable row level security;
 alter table app_user            enable row level security;
 alter table tag                 enable row level security;
 alter table episode             enable row level security;
+alter table bed_transfer        enable row level security;
 alter table assessment          enable row level security;
 alter table corrective_action   enable row level security;
 alter table usability_response  enable row level security;
 alter table audit_log           enable row level security;
+
+
+-- ── มุมมองสำหรับ export งานวิจัย ─────────────────────────────────────
+-- ไม่มีคอลัมน์ hn โดยตั้งใจ — ใช้ study_code แทน
+-- เพื่อให้ชุดข้อมูลที่ส่งออกไปวิเคราะห์เป็น de-identified ตั้งแต่ต้นทาง
+create view research_assessment as
+select
+  a.assessment_id,
+  e.study_code,
+  a.source,
+  a.study_mode,
+  a.assessed_at,
+  a.shift,
+  a.foley_day,
+  a.need, a.fix, a.flow, a.below, a.closed,
+  a.all_pass,
+  a.feedback,
+  e.ward_code,
+  e.insert_date,
+  e.remove_date
+from assessment a
+join episode e on e.episode_id = a.episode_id;
+
+comment on view research_assessment is
+  'ข้อมูลการประเมินสำหรับวิเคราะห์สถิติ — ไม่มี HN, เตียง หรือหมายเหตุที่อาจระบุตัวผู้ป่วย';

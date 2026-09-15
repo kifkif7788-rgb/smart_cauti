@@ -45,11 +45,12 @@ export default async function AssessByEpisodePage(
       <AppHeader
         title="CAUTI Bundle CHECK 5"
         backHref="/"
-        subtitle={`เตียง ${episode.bed_no} · ไม่ผ่านป้าย QR`}
+        subtitle={`เตียง ${episode.bed_no} · HN ${episode.hn}`}
       />
       <Check5Form
         episode={{
           episodeId: episode.episode_id,
+          hn: episode.hn,
           studyCode: episode.study_code,
           bedNo: episode.bed_no,
           wardCode: episode.ward_code,

@@ -37,6 +37,7 @@ export type AppUserRow = {
 export type TagRow = {
   tag_code: string;
   ward_code: string;
+  bed_no: string;
   is_retired: boolean;
   created_at: string;
 }
@@ -44,6 +45,9 @@ export type TagRow = {
 export type EpisodeRow = {
   episode_id: string;
   study_id: string;
+  /** HN ผู้ป่วย — ข้อมูลส่วนบุคคล ห้ามใส่ในไฟล์ export ของงานวิจัย */
+  hn: string;
+  /** รหัสสำหรับงานวิจัย สร้างอัตโนมัติจาก sequence */
   study_code: string;
   tag_code: string | null;
   ward_code: string;
@@ -53,7 +57,20 @@ export type EpisodeRow = {
   removal_reason: string | null;
   is_active: boolean;
   created_by: string;
+  closed_by: string | null;
   created_at: string;
+}
+
+export type BedTransferRow = {
+  transfer_id: string;
+  episode_id: string;
+  from_bed_no: string;
+  to_bed_no: string;
+  from_tag_code: string | null;
+  to_tag_code: string | null;
+  reason: string | null;
+  moved_by: string;
+  moved_at: string;
 }
 
 export type AssessmentRow = {
@@ -129,7 +146,8 @@ export interface Database {
       study_mode_log: Table<StudyModeLogRow>;
       app_user: Table<AppUserRow>;
       tag: Table<TagRow>;
-      episode: Table<EpisodeRow>;
+      episode: Table<EpisodeRow, Partial<EpisodeRow> & { hn: string }>;
+      bed_transfer: Table<BedTransferRow>;
       assessment: Table<AssessmentRow>;
       corrective_action: Table<CorrectiveActionRow>;
       usability_response: Table<UsabilityResponseRow>;

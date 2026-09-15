@@ -2,10 +2,16 @@ import type { NextRequest } from 'next/server';
 import { db, writeAudit } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 import { getActiveStudy } from '@/lib/study';
-import { isValidTagCode } from '@/lib/qr';
+import { isValidTagCode, bedNoFromTagCode } from '@/lib/qr';
+import { isValidHn, normalizeHn } from '@/lib/hn';
 import { bangkokDateString } from '@/lib/shift';
 
-/** เปิด episode ใหม่และผูกป้าย QR กับผู้ป่วย (ทำครั้งเดียวตอนติดป้าย) */
+/**
+ * เปิด episode ใหม่ที่เตียงหนึ่ง — ทำหลังสแกน QR ประจำเตียงที่ยังว่าง
+ *
+ * study_code ไม่ได้รับจาก client แต่ให้ฐานข้อมูลสร้างเองจาก sequence
+ * เพื่อให้รหัสงานวิจัยเรียงต่อเนื่องและไม่ซ้ำ โดยที่ผู้ใช้ไม่ต้องจำกฎการตั้งรหัส
+ */
 export async function POST(request: NextRequest) {
   const session = await getSession();
   if (!session) {
@@ -19,21 +25,20 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: 'รูปแบบข้อมูลไม่ถูกต้อง' }, { status: 400 });
   }
 
-  const { tagCode, studyCode, bedNo, insertDate } = body as {
+  const { tagCode, hn, insertDate } = body as {
     tagCode?: unknown;
-    studyCode?: unknown;
-    bedNo?: unknown;
+    hn?: unknown;
     insertDate?: unknown;
   };
 
   if (!isValidTagCode(tagCode)) {
-    return Response.json({ error: 'รหัสป้ายไม่ถูกต้อง' }, { status: 400 });
+    return Response.json({ error: 'รหัสเตียงไม่ถูกต้อง' }, { status: 400 });
   }
-  if (typeof studyCode !== 'string' || studyCode.trim().length === 0) {
-    return Response.json({ error: 'กรุณากรอก Study ID' }, { status: 400 });
-  }
-  if (typeof bedNo !== 'string' || bedNo.trim().length === 0) {
-    return Response.json({ error: 'กรุณากรอกหมายเลขเตียง' }, { status: 400 });
+  if (!isValidHn(hn)) {
+    return Response.json(
+      { error: 'HN ต้องเป็นตัวอักษรหรือตัวเลข 4–15 หลัก' },
+      { status: 400 },
+    );
   }
   if (typeof insertDate !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(insertDate)) {
     return Response.json({ error: 'วันที่ใส่สายไม่ถูกต้อง' }, { status: 400 });
@@ -42,18 +47,7 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: 'วันที่ใส่สายต้องไม่เป็นวันในอนาคต' }, { status: 400 });
   }
 
-  // กันไม่ให้มี Study ID ที่เป็นเลข HN หลุดเข้ามาโดยไม่ตั้งใจ
-  if (/^\d{7,}$/.test(studyCode.trim())) {
-    return Response.json(
-      {
-        error:
-          'Study ID ไม่ควรเป็นตัวเลขล้วน 7 หลักขึ้นไป เพราะอาจเป็น HN — ' +
-          'กรุณาใช้รหัสตามที่หน่วยงานกำหนด',
-      },
-      { status: 400 },
-    );
-  }
-
+  const normalizedHn = normalizeHn(hn);
   const study = await getActiveStudy();
 
   const { data: tag } = await db()
@@ -63,20 +57,48 @@ export async function POST(request: NextRequest) {
     .maybeSingle();
 
   if (!tag || tag.is_retired) {
-    return Response.json({ error: 'ไม่พบป้ายนี้ในระบบ' }, { status: 404 });
+    return Response.json({ error: 'ไม่พบป้ายเตียงนี้ในระบบ' }, { status: 404 });
   }
 
-  // ป้ายหนึ่งใบผูกกับ episode ที่ active ได้เพียงรายการเดียว
-  const { data: bound } = await db()
+  // เตียงต้องว่าง — ถ้ายังมีผู้ป่วยรายเดิมอยู่ ต้องปิดรายเดิมก่อน
+  const { data: occupied } = await db()
     .from('episode')
-    .select('episode_id')
-    .eq('tag_code', tagCode)
+    .select('episode_id, hn')
+    .eq('ward_code', tag.ward_code)
+    .eq('bed_no', tag.bed_no)
     .eq('is_active', true)
     .maybeSingle();
 
-  if (bound) {
+  if (occupied) {
     return Response.json(
-      { error: 'ป้ายนี้ผูกกับผู้ป่วยรายอื่นอยู่ กรุณาปิด episode เดิมก่อน' },
+      {
+        error:
+          `เตียง ${tag.bed_no} ยังมีผู้ป่วยที่คาสายอยู่ ` +
+          'กรุณาปิดรายการเดิม (ถอดสาย/จำหน่าย) ก่อนลงทะเบียนผู้ป่วยใหม่',
+        occupiedEpisodeId: occupied.episode_id,
+      },
+      { status: 409 },
+    );
+  }
+
+  // HN เดียวกันมี episode ที่ยัง active อยู่ที่เตียงอื่น — น่าจะเป็นการย้ายเตียง
+  const { data: elsewhere } = await db()
+    .from('episode')
+    .select('episode_id, bed_no, tag_code')
+    .eq('hn', normalizedHn)
+    .eq('is_active', true)
+    .maybeSingle();
+
+  if (elsewhere) {
+    return Response.json(
+      {
+        error:
+          `HN นี้มีรายการคาสายอยู่ที่เตียง ${elsewhere.bed_no} แล้ว ` +
+          'หากผู้ป่วยย้ายเตียง กรุณาใช้ปุ่มย้ายเตียงแทน เพื่อไม่ให้จำนวนวันคาสายเริ่มนับใหม่',
+        existingEpisodeId: elsewhere.episode_id,
+        existingBedNo: elsewhere.bed_no,
+        existingTagCode: elsewhere.tag_code,
+      },
       { status: 409 },
     );
   }
@@ -85,15 +107,15 @@ export async function POST(request: NextRequest) {
     .from('episode')
     .insert({
       study_id: study.study_id,
-      study_code: studyCode.trim(),
+      hn: normalizedHn,
       tag_code: tagCode,
       ward_code: tag.ward_code,
-      bed_no: bedNo.trim(),
+      bed_no: tag.bed_no,
       insert_date: insertDate,
       is_active: true,
       created_by: session.userId,
     })
-    .select('episode_id')
+    .select('episode_id, study_code')
     .single();
 
   if (error || !created) {
@@ -101,13 +123,22 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: 'บันทึกไม่สำเร็จ กรุณาลองใหม่' }, { status: 500 });
   }
 
+  // audit log ไม่บันทึก HN เต็ม — บันทึกเพียง study_code ที่สืบย้อนได้
   await writeAudit({
     actorId: session.userId,
     action: 'EPISODE_CREATE',
     entity: 'episode',
     entityId: created.episode_id,
-    detail: { tagCode, bedNo: bedNo.trim() },
+    detail: {
+      studyCode: created.study_code,
+      bedNo: tag.bed_no,
+      tagCode,
+      bedFromTag: bedNoFromTagCode(tagCode),
+    },
   });
 
-  return Response.json({ episodeId: created.episode_id }, { status: 201 });
+  return Response.json(
+    { episodeId: created.episode_id, studyCode: created.study_code },
+    { status: 201 },
+  );
 }

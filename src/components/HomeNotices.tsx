@@ -7,16 +7,19 @@ function Notices() {
   const params = useSearchParams();
   const saved = params.get('saved') === '1';
   const queued = params.get('queued') === '1';
+  const closed = params.get('closed') === '1';
 
-  if (!saved && !queued) return null;
+  if (!saved && !queued && !closed) return null;
+
+  const warning = queued;
 
   return (
     <div
       className="mb-4 flex items-start gap-3 rounded-xl border-l-4 px-4 py-3"
       role="status"
       style={{
-        background: queued ? 'var(--correct-bg)' : 'var(--pass-bg)',
-        borderColor: queued ? 'var(--correct)' : 'var(--pass)',
+        background: warning ? 'var(--correct-bg)' : 'var(--pass-bg)',
+        borderColor: warning ? 'var(--correct)' : 'var(--pass)',
       }}
     >
       <span aria-hidden="true" className="text-lg leading-none">
@@ -27,6 +30,11 @@ function Notices() {
           <>
             <strong>บันทึกไว้ในเครื่องแล้ว</strong> — ขณะนี้ไม่มีสัญญาณ
             ระบบจะส่งข้อมูลให้อัตโนมัติเมื่อกลับมาออนไลน์
+          </>
+        ) : closed ? (
+          <>
+            <strong>ปิดรายการเรียบร้อย</strong> — เตียงนี้ว่างแล้ว
+            พร้อมรับผู้ป่วยรายใหม่ผ่าน QR ใบเดิม
           </>
         ) : (
           <strong>บันทึกข้อมูลเรียบร้อย</strong>

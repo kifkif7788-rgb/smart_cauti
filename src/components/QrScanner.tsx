@@ -49,7 +49,7 @@ export function QrScanner() {
         path = value.startsWith('/') ? value : `/s/${value}`;
       }
 
-      if (!/^\/s\/[A-Z]{2}-[A-Z0-9]{6}/.test(path)) return;
+      if (!/^\/s\/[A-Z]{2}-B\d{2}(\?|$)/.test(path)) return;
 
       handledRef.current = true;
       if (navigator.vibrate) navigator.vibrate(40);
@@ -152,7 +152,7 @@ export function QrScanner() {
   function submitManual(event: React.FormEvent) {
     event.preventDefault();
     const code = manualCode.trim().toUpperCase();
-    if (/^[A-Z]{2}-[A-Z0-9]{6}$/.test(code)) {
+    if (/^[A-Z]{2}-B\d{2}$/.test(code)) {
       router.push(`/assess/${code}`);
     }
   }
@@ -181,7 +181,7 @@ export function QrScanner() {
             </div>
           </div>
           <p className="mt-3 text-center text-[14px]" style={{ color: 'var(--muted)' }}>
-            เล็งกล้องไปที่ QR บนป้ายที่สายปัสสาวะ
+            เล็งกล้องไปที่ QR ประจำเตียงผู้ป่วย
           </p>
         </>
       ) : (
@@ -201,14 +201,14 @@ export function QrScanner() {
           หรือกรอกรหัสป้าย
         </label>
         <p className="mt-0.5 text-[13px]" style={{ color: 'var(--muted)' }}>
-          รหัสพิมพ์อยู่ใต้ QR บนป้าย เช่น SM-A17K3Q
+          รหัสพิมพ์อยู่ใต้ QR บนป้าย — SM-B01 คือเตียง 1
         </p>
         <div className="mt-2.5 flex gap-2">
           <input
             id="tag-code"
             value={manualCode}
-            onChange={(e) => setManualCode(e.target.value.toUpperCase().slice(0, 9))}
-            placeholder="SM-XXXXXX"
+            onChange={(e) => setManualCode(e.target.value.toUpperCase().slice(0, 6))}
+            placeholder="SM-B01"
             autoCapitalize="characters"
             autoCorrect="off"
             spellCheck={false}
@@ -222,7 +222,7 @@ export function QrScanner() {
           />
           <button
             type="submit"
-            disabled={!/^[A-Z]{2}-[A-Z0-9]{6}$/.test(manualCode.trim())}
+            disabled={!/^[A-Z]{2}-B\d{2}$/.test(manualCode.trim())}
             className="btn-primary shrink-0 px-5 text-[15px]"
           >
             ไป
