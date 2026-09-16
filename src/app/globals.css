@@ -213,6 +213,10 @@ body > main, body > .assessment-page, body > header + main { max-width:540px; }
 .feature-row [data-tone="2"] { background:linear-gradient(135deg,#ffe49c,#ffbc31); color:#b96b00; }
 .feature-row [data-tone="3"] { background:linear-gradient(135deg,#b3efd1,#54cba0); color:#07885f; }
 .feature-row small { display:block; max-width:75px; margin:auto; font-size:11px; font-weight:600; line-height:1.45; color:var(--primary); }
+/* a เป็น inline โดยปริยาย ต้องบังคับ block ไม่งั้นวงกลมไอคอนหลุดจากกริด */
+.feature-row a { display:block; text-align:center; text-decoration:none; -webkit-tap-highlight-color:transparent; }
+.feature-row a:active span { transform:scale(.93); }
+.feature-row a span { transition:transform .12s ease; }
 .care-note { position:relative; display:flex; align-items:center; justify-content:flex-end; min-height:195px; padding:25px 0 8px 130px; margin:12px -6px 0; isolation:isolate; }
 .nurse-mascot { position:absolute; left:-5px; bottom:0; width:145px; height:auto; z-index:1; }
 .care-bubble { display:flex; align-items:center; justify-content:center; position:relative; width:100%; min-height:135px; padding:18px 14px; background:linear-gradient(115deg,#d5f5fb,#c9f0f8); border-radius:46% 32% 33% 24% / 22% 25% 32% 40%; }

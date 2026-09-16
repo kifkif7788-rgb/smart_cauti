@@ -11,6 +11,21 @@
 export const CHECK5_KEYS = ['need', 'fix', 'flow', 'below', 'closed'] as const;
 export type Check5Key = (typeof CHECK5_KEYS)[number];
 
+/**
+ * คุณวุฒิของผู้ลงมือประเมิน — คนละเรื่องกับ role ในระบบซึ่งบอกสิทธิ์การใช้งาน
+ * งานวิจัยใช้เปรียบเทียบความสอดคล้องของการปฏิบัติระหว่างสองกลุ่ม
+ */
+export const NURSE_LEVEL = {
+  RN: 'RN · พยาบาลวิชาชีพ',
+  PN: 'PN · ผู้ช่วยพยาบาล',
+} as const;
+
+export type NurseLevel = keyof typeof NURSE_LEVEL;
+
+export function isNurseLevel(value: unknown): value is NurseLevel {
+  return value === 'RN' || value === 'PN';
+}
+
 /** คำตอบ 5 ข้อ — true = ผ่าน, false = ไม่ผ่าน */
 export type Check5Answers = Record<Check5Key, boolean>;
 

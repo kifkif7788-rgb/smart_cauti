@@ -62,7 +62,7 @@ export default async function HomePage() {
           </div>
         )}
 
-        <ScanHero />
+        <ScanHero showDashboard={showDashboard} />
         <CareNote />
 
         {/* ── รายการค้างประเมิน ─────────────────────────────────── */}

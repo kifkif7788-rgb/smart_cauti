@@ -7,6 +7,7 @@ export type StudyMode = 'BASELINE' | 'INTERVENTION';
 export type UserRoleDb = 'NURSE' | 'AUDITOR' | 'WARD_HEAD' | 'IC_NURSE' | 'ADMIN';
 export type ShiftDb = 'MORNING' | 'AFTERNOON' | 'NIGHT';
 export type SourceDb = 'NURSE' | 'AUDITOR';
+export type NurseLevelDb = 'RN' | 'PN';
 export type FeedbackDb = 'PASS' | 'CORRECT_NOW' | 'REVIEW_REMOVAL' | 'CLOSED_BREACH';
 export type ActionStatusDb = 'CORRECTED' | 'ESCALATED' | 'UNABLE';
 
@@ -79,6 +80,8 @@ export type AssessmentRow = {
   episode_id: string;
   assessor_id: string;
   source: SourceDb;
+  /** คุณวุฒิผู้ประเมิน — ว่างได้ เพราะแถวก่อนมีฟีเจอร์นี้ยังไม่มีค่า */
+  nurse_level: NurseLevelDb | null;
   study_mode: StudyMode;
   assessed_at: string;
   shift: ShiftDb;
@@ -206,6 +209,7 @@ export interface Database {
       user_role: UserRoleDb;
       shift_type: ShiftDb;
       source_type: SourceDb;
+      nurse_level: NurseLevelDb;
       feedback_type: FeedbackDb;
       action_status: ActionStatusDb;
       catheter_at_doe: CatheterAtDoeDb;

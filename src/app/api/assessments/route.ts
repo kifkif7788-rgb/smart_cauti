@@ -2,7 +2,7 @@ import type { NextRequest } from 'next/server';
 import { db, writeAudit } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 import { getActiveStudy, shouldRevealFeedback } from '@/lib/study';
-import { evaluateCheck5, parseAnswers } from '@/lib/check5';
+import { evaluateCheck5, isNurseLevel, parseAnswers } from '@/lib/check5';
 import { currentShift, foleyDay } from '@/lib/shift';
 import { buildAssessmentResponseBody } from './response';
 import type { StudyMode } from '@/types/database';
@@ -33,6 +33,13 @@ export async function POST(request: NextRequest) {
   }
   if (notes != null && (typeof notes !== 'string' || notes.length > 500)) {
     return Response.json({ error: 'หมายเหตุต้องไม่เกิน 500 อักขระ' }, { status: 400 });
+  }
+
+  // รายการที่ค้างในคิวออฟไลน์ตั้งแต่ก่อนมีฟีเจอร์นี้ยังไม่มีค่า จึงรับ null ได้
+  // แต่ถ้าส่งมาแล้วต้องเป็น RN หรือ PN เท่านั้น
+  const nurseLevel = body.nurseLevel;
+  if (nurseLevel != null && !isNurseLevel(nurseLevel)) {
+    return Response.json({ error: 'ระดับผู้ประเมินต้องเป็น RN หรือ PN' }, { status: 400 });
   }
 
   const answers = parseAnswers(body.answers);
@@ -98,6 +105,7 @@ export async function POST(request: NextRequest) {
       episode_id: episodeId,
       assessor_id: session.userId,
       source: session.role === 'AUDITOR' ? 'AUDITOR' : 'NURSE',
+      nurse_level: isNurseLevel(nurseLevel) ? nurseLevel : null,
       study_mode: study.current_mode,
       assessed_at: assessedAt.toISOString(),
       shift: currentShift(assessedAt),

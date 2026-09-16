@@ -10,12 +10,13 @@
  */
 
 import { openDB, type IDBPDatabase } from 'idb';
-import type { Check5Key } from './check5';
+import type { Check5Key, NurseLevel } from './check5';
 
 export interface QueuedAssessment {
   clientUuid: string;
   episodeId: string;
   answers: Record<Check5Key, boolean>;
+  nurseLevel: NurseLevel;
   notes?: string;
   queuedAt: string;
 }

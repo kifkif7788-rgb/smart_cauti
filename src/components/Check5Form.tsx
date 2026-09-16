@@ -3,7 +3,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { BundleIcon, UiIcon } from '@/components/UiIcon';
-import { CHECK5_ITEMS, type Check5Key } from '@/lib/check5';
+import {
+  CHECK5_ITEMS,
+  NURSE_LEVEL,
+  isNurseLevel,
+  type Check5Key,
+  type NurseLevel,
+} from '@/lib/check5';
 import { queueAssessment, type QueuedAssessment } from '@/lib/offline';
 
 export interface EpisodeSummary {
@@ -38,6 +44,7 @@ export function Check5Form({
 }: Props) {
   const router = useRouter();
   const [answers, setAnswers] = useState<AnswerState>({});
+  const [nurseLevel, setNurseLevel] = useState<NurseLevel | null>(null);
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [previewSaved, setPreviewSaved] = useState(false);
@@ -51,9 +58,14 @@ export function Check5Form({
     try {
       const raw = sessionStorage.getItem(draftKey);
       if (!raw) return;
-      const draft = JSON.parse(raw) as { answers?: AnswerState; notes?: string };
+      const draft = JSON.parse(raw) as {
+        answers?: AnswerState;
+        notes?: string;
+        nurseLevel?: unknown;
+      };
       if (draft.answers) setAnswers(draft.answers);
       if (typeof draft.notes === 'string') setNotes(draft.notes);
+      if (isNurseLevel(draft.nurseLevel)) setNurseLevel(draft.nurseLevel);
     } catch {
       // sessionStorage อาจถูกปิดในโหมดส่วนตัว — ไม่ใช่เรื่องร้ายแรง
     }
@@ -61,11 +73,11 @@ export function Check5Form({
 
   useEffect(() => {
     try {
-      sessionStorage.setItem(draftKey, JSON.stringify({ answers, notes }));
+      sessionStorage.setItem(draftKey, JSON.stringify({ answers, notes, nurseLevel }));
     } catch {
       /* ไม่ทำอะไร */
     }
-  }, [answers, notes, draftKey]);
+  }, [answers, notes, nurseLevel, draftKey]);
 
   const answeredCount = useMemo(
     () => CHECK5_ITEMS.filter((i) => answers[i.key] !== undefined).length,
@@ -90,6 +102,15 @@ export function Check5Form({
       return;
     }
 
+    if (!nurseLevel) {
+      setShowMissing(true);
+      setError('กรุณาเลือกว่าผู้ประเมินเป็น RN หรือ PN');
+      document
+        .getElementById('nurse-level')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
     if (preview) { setPreviewSaved(true); return; }
 
     setSubmitting(true);
@@ -99,6 +120,7 @@ export function Check5Form({
       clientUuid: crypto.randomUUID(),
       episodeId: episode.episodeId,
       answers: answers as Record<Check5Key, boolean>,
+      nurseLevel,
       notes: notes.trim() || undefined,
       queuedAt: new Date().toISOString(),
     };
@@ -244,6 +266,44 @@ export function Check5Form({
             </fieldset>
           );
         })}
+
+        {/* ── ผู้ประเมิน ────────────────────────────────────────── */}
+        <fieldset id="nurse-level" className="assessment-notes">
+          <legend className="text-sm font-bold">ผู้ประเมิน</legend>
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            {(Object.keys(NURSE_LEVEL) as NurseLevel[]).map((level) => {
+              const active = nurseLevel === level;
+              return (
+                <label
+                  key={level}
+                  className="flex items-center justify-center gap-2 rounded-lg border px-3 py-3 text-[15px] font-bold"
+                  style={{
+                    background: active ? 'var(--primary)' : 'var(--surface-2)',
+                    borderColor: active ? 'var(--primary)' : 'var(--border)',
+                    color: active ? '#fff' : 'var(--text)',
+                  }}
+                >
+                  <input
+                    type="radio"
+                    name="nurse-level"
+                    className="sr-only"
+                    checked={active}
+                    onChange={() => {
+                      setNurseLevel(level);
+                      setError(null);
+                    }}
+                  />
+                  {NURSE_LEVEL[level]}
+                </label>
+              );
+            })}
+          </div>
+          {showMissing && !nurseLevel && (
+            <p className="mt-1.5 text-[12.5px] font-semibold" style={{ color: 'var(--review)' }}>
+              ยังไม่ได้เลือกผู้ประเมิน
+            </p>
+          )}
+        </fieldset>
 
         {/* ── หมายเหตุ ──────────────────────────────────────────── */}
         <div className="assessment-notes">
