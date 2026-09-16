@@ -7,7 +7,7 @@ import { getActiveStudy, nurseCanSeeDashboard } from '@/lib/study';
 import { db } from '@/lib/db';
 import { awaitingDiagnosisEpisodes } from '@/lib/awaiting-diagnosis';
 import { readNurseLevelCookie } from '@/lib/nurse-level-cookie';
-import { foleyDay, currentShiftWindow, currentShift, SHIFT_LABEL_TH } from '@/lib/shift';
+import { foleyDay, currentShift, SHIFT_LABEL_TH } from '@/lib/shift';
 import { maskHn } from '@/lib/hn';
 import { AppHeader } from '@/components/AppHeader';
 import { HomeNotices } from '@/components/HomeNotices';
@@ -19,7 +19,6 @@ export default async function HomePage() {
 
   const study = await getActiveStudy();
   const wardCodes = session.wardCodes.length > 0 ? session.wardCodes : [study.ward_code];
-  const source = session.role === 'AUDITOR' ? 'AUDITOR' : 'NURSE';
 
   const { data: episodes } = await db()
     .from('episode')
@@ -29,23 +28,6 @@ export default async function HomePage() {
 
   // เรียงตามเลขเตียงแบบตัวเลข — Postgres เรียง text จะได้ 1, 10, 11, 2
   const list = (episodes ?? []).sort((a, b) => Number(a.bed_no) - Number(b.bed_no));
-  const { start, end } = currentShiftWindow();
-
-  const { data: shiftAssessments } = list.length
-    ? await db()
-        .from('assessment')
-        .select('episode_id')
-        .eq('source', source)
-        .gte('assessed_at', start.toISOString())
-        .lt('assessed_at', end.toISOString())
-        .in(
-          'episode_id',
-          list.map((e) => e.episode_id),
-        )
-    : { data: [] };
-
-  const assessedIds = new Set((shiftAssessments ?? []).map((a) => a.episode_id));
-  const pending = list.filter((e) => !assessedIds.has(e.episode_id));
   const awaitingDiagnosis = await awaitingDiagnosisEpisodes(list.map((e) => e.episode_id));
   const awaitingList = list.filter((e) => awaitingDiagnosis.has(e.episode_id));
   const canDiagnose = canDiagnoseInfection(session.role);
@@ -63,81 +45,6 @@ export default async function HomePage() {
 
         <ScanHero showDashboard={showDashboard} nurseLevel={nurseLevel} />
         <CareNote />
-
-        {/* ── รายการค้างประเมิน ─────────────────────────────────── */}
-        <section className="mt-6">
-          <div className="mb-2 flex items-baseline justify-between">
-            <h2 className="text-base font-extrabold">ค้างประเมินในเวรนี้</h2>
-            <span className="text-sm font-bold tabular-nums" style={{ color: 'var(--muted)' }}>
-              {pending.length} / {list.length} ราย
-            </span>
-          </div>
-          {pending.length > 0 && (
-            <p className="mb-2 text-[13px]" style={{ color: 'var(--muted)' }}>
-              รายการนี้ดูได้อย่างเดียว — ต้องสแกน QR ที่ป้ายข้างเตียงจึงจะเริ่มประเมินได้
-            </p>
-          )}
-
-          {list.length === 0 ? (
-            <p
-              className="surface px-4 py-6 text-center text-sm"
-              style={{ color: 'var(--muted)' }}
-            >
-              ยังไม่มีผู้ป่วยที่คาสายสวนในหอผู้ป่วยนี้
-            </p>
-          ) : pending.length === 0 ? (
-            <p
-              className="rounded-xl px-4 py-6 text-center text-sm font-semibold"
-              style={{ background: 'var(--pass-bg)', color: 'var(--pass)' }}
-            >
-              ประเมินครบทุกรายในเวรนี้แล้ว
-            </p>
-          ) : (
-            <ul className="space-y-2">
-              {pending.map((episode) => {
-                const day = foleyDay(episode.insert_date);
-                return (
-                  <li key={episode.episode_id}>
-                    <div className="surface flex items-center gap-3 px-4 py-3.5">
-                      <div
-                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-lg font-extrabold tabular-nums"
-                        style={{ background: 'var(--surface-2)', color: 'var(--primary)' }}
-                        aria-label={`เตียง ${episode.bed_no}`}
-                      >
-                        {episode.bed_no}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        {/* ปิดบัง HN ในรายการรวม — แสดงเต็มเฉพาะหน้าประเมินที่ต้องยืนยันตัวผู้ป่วย */}
-                        <div className="truncate font-bold tabular-nums">
-                          HN {maskHn(episode.hn)}
-                        </div>
-                        <div className="text-[13px]" style={{ color: 'var(--muted)' }}>
-                          คาสายวันที่ {day}
-                        </div>
-                      </div>
-                      {awaitingDiagnosis.has(episode.episode_id) && (
-                        <span
-                          className="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold"
-                          style={{ background: 'var(--review-bg)', color: 'var(--review)' }}
-                        >
-                          รอวินิจฉัย
-                        </span>
-                      )}
-                      {day >= 3 && (
-                        <span
-                          className="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold"
-                          style={{ background: 'var(--correct-bg)', color: 'var(--correct)' }}
-                        >
-                          ทบทวน NEED
-                        </span>
-                      )}
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </section>
 
         {/* ── รอวินิจฉัย ────────────────────────────────────────── */}
         {/* แยกจากรายการค้างประเมิน เพราะผู้ป่วยที่ประเมินไปแล้วจะหลุดจากรายการนั้น */}

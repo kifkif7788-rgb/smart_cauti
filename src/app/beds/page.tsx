@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import { getSession, sourceForRole } from '@/lib/auth';
 import { getActiveStudy } from '@/lib/study';
 import { db } from '@/lib/db';
@@ -7,12 +8,13 @@ import { foleyDay, currentShiftWindow } from '@/lib/shift';
 import { episodesWithSymptoms } from '@/lib/awaiting-diagnosis';
 import { AppHeader } from '@/components/AppHeader';
 
-type BedStatus = 'SYMPTOM' | 'PENDING' | 'DONE' | 'EMPTY';
+type BedStatus = 'PASS' | 'ATTENTION' | 'SYMPTOM' | 'PENDING' | 'EMPTY';
 
 const STATUS = {
+  PASS: { label: 'ผ่านทุกข้อ', bg: 'var(--pass-bg)', fg: 'var(--pass)' },
+  ATTENTION: { label: 'มีข้อไม่ผ่าน', bg: 'var(--correct-bg)', fg: 'var(--correct)' },
   SYMPTOM: { label: 'มีอาการ', bg: 'var(--review-bg)', fg: 'var(--review)' },
-  PENDING: { label: 'ค้างประเมิน', bg: 'var(--correct-bg)', fg: 'var(--correct)' },
-  DONE: { label: 'ประเมินครบ', bg: 'var(--pass-bg)', fg: 'var(--pass)' },
+  PENDING: { label: 'ค้างประเมิน', bg: 'var(--surface-2)', fg: 'var(--primary)' },
   EMPTY: { label: 'เตียงว่าง', bg: 'var(--surface)', fg: 'var(--muted)' },
 } as const;
 
@@ -24,7 +26,11 @@ export default async function BedsPage() {
   const wardCodes = session.wardCodes.length > 0 ? session.wardCodes : [study.ward_code];
 
   const [{ data: tags }, { data: episodes }] = await Promise.all([
-    db().from('tag').select('bed_no').in('ward_code', wardCodes).eq('is_retired', false),
+    db()
+      .from('tag')
+      .select('tag_code, bed_no')
+      .in('ward_code', wardCodes)
+      .eq('is_retired', false),
     db().from('episode').select('*').eq('is_active', true).in('ward_code', wardCodes),
   ]);
 
@@ -35,7 +41,7 @@ export default async function BedsPage() {
   const { data: shiftAssessments } = occupied.length
     ? await db()
         .from('assessment')
-        .select('episode_id')
+        .select('episode_id, all_pass, assessed_at')
         .eq('source', sourceForRole(session.role))
         .gte('assessed_at', start.toISOString())
         .lt('assessed_at', end.toISOString())
@@ -43,30 +49,38 @@ export default async function BedsPage() {
           'episode_id',
           occupied.map((e) => e.episode_id),
         )
+        .order('assessed_at', { ascending: false })
     : { data: [] };
 
-  const assessed = new Set((shiftAssessments ?? []).map((a) => a.episode_id));
+  // ประเมินซ้ำในเวรเดียวกันได้ ใช้ครั้งล่าสุดเป็นตัวตัดสินสถานะ
+  const latest = new Map<string, boolean>();
+  for (const row of shiftAssessments ?? []) {
+    if (!latest.has(row.episode_id)) latest.set(row.episode_id, row.all_pass);
+  }
   const symptomatic = await episodesWithSymptoms(occupied.map((e) => e.episode_id));
 
   const beds = (tags ?? [])
-    .map((t) => t.bed_no)
-    .sort((a, b) => Number(a) - Number(b))
-    .map((bedNo) => {
+    .slice()
+    .sort((a, b) => Number(a.bed_no) - Number(b.bed_no))
+    .map(({ tag_code: tagCode, bed_no: bedNo }) => {
       const episode = byBed.get(bedNo);
       // อาการแสดงสำคัญกว่าสถานะการประเมิน จึงมาก่อนเสมอ
+      const allPass = episode ? latest.get(episode.episode_id) : undefined;
       const status: BedStatus = !episode
         ? 'EMPTY'
         : symptomatic.has(episode.episode_id)
           ? 'SYMPTOM'
-          : assessed.has(episode.episode_id)
-            ? 'DONE'
-            : 'PENDING';
-      return { bedNo, episode, status };
+          : allPass === undefined
+            ? 'PENDING'
+            : allPass
+              ? 'PASS'
+              : 'ATTENTION';
+      return { tagCode, bedNo, episode, status };
     });
 
   const counts = beds.reduce<Record<BedStatus, number>>(
     (acc, b) => ({ ...acc, [b.status]: acc[b.status] + 1 }),
-    { SYMPTOM: 0, PENDING: 0, DONE: 0, EMPTY: 0 },
+    { PASS: 0, ATTENTION: 0, SYMPTOM: 0, PENDING: 0, EMPTY: 0 },
   );
 
   return (
@@ -74,7 +88,7 @@ export default async function BedsPage() {
       <AppHeader title="เช็กทุกวัน" backHref="/" />
       <main className="mx-auto max-w-2xl px-4 pb-16 pt-4">
         <p className="text-[13px]" style={{ color: 'var(--muted)' }}>
-          ผังเตียงทั้งหอ ดูได้อย่างเดียว — ต้องสแกน QR ที่ป้ายข้างเตียงจึงจะเริ่มประเมินได้
+          แตะที่เตียงเพื่อดูรายละเอียด — การประเมินยังต้องสแกน QR ที่ป้ายข้างเตียง
         </p>
 
         {/* ── คำอธิบายสี ──────────────────────────────────────── */}
@@ -101,11 +115,12 @@ export default async function BedsPage() {
           </p>
         ) : (
           <ul className="mt-4 grid grid-cols-4 gap-2.5 sm:grid-cols-5">
-            {beds.map(({ bedNo, episode, status }) => {
+            {beds.map(({ tagCode, bedNo, episode, status }) => {
               const tone = STATUS[status];
               return (
                 <li key={bedNo}>
-                  <div
+                  <Link
+                    href={`/beds/${tagCode}`}
                     className="flex h-[74px] flex-col items-center justify-center rounded-xl border px-1"
                     style={{ background: tone.bg, borderColor: tone.fg }}
                     title={`เตียง ${bedNo} · ${tone.label}`}
@@ -130,7 +145,7 @@ export default async function BedsPage() {
                         {maskHn(episode.hn)}
                       </span>
                     )}
-                  </div>
+                  </Link>
                 </li>
               );
             })}
