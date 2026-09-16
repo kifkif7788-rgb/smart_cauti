@@ -16,7 +16,7 @@ export type CatheterAtDoe = keyof typeof CATHETER_AT_DOE;
 
 // ── 10.2.2 / 10.2.3 ผลเพาะเชื้อปัสสาวะ ───────────────────────────────
 export const UC_RESULT = {
-  NO_GROWTH: 'ผล U/C ไม่พบเชื้อแบคทีเรีย',
+  NO_GROWTH: 'ผล U/C ไม่พบเชื้อ',
   SIGNIFICANT: 'ผล U/C พบเชื้อแบคทีเรียไม่เกิน 2 ชนิด และมีจำนวน colony ≥ 10⁵ CFU/ml',
   NON_BACTERIAL: 'ผล U/C พบเชื้อที่ไม่ใช่แบคทีเรีย',
 } as const;
