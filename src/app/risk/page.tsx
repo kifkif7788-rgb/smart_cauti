@@ -84,6 +84,23 @@ export default async function RiskPage() {
           รายการนี้ดูได้อย่างเดียว — ต้องสแกน QR ที่ป้ายข้างเตียงจึงจะเริ่มประเมินได้
         </p>
 
+        <RiskSection
+          title="ผู้ป่วยที่มีอาการแสดงการติดเชื้อ"
+          empty="ยังไม่มีผู้ป่วยที่บันทึกอาการแสดงไว้"
+          episodes={symptomatic}
+          tone="review"
+          badge={(e) => (awaiting.has(e.episode_id) ? 'รอวินิจฉัย' : 'มีอาการ')}
+        />
+
+        <RiskSection
+          title={`ผู้ป่วยคาสายตั้งแต่ ${LONG_STAY_DAYS} วันขึ้นไป`}
+          empty={`ยังไม่มีผู้ป่วยที่คาสายถึง ${LONG_STAY_DAYS} วัน`}
+          episodes={longStay}
+          tone="correct"
+          badge={() => 'ทบทวน NEED'}
+          note="ทบทวนความจำเป็นของการคาสายกับทีมผู้รักษา ยิ่งคาสายนานยิ่งเสี่ยงต่อ CAUTI"
+        />
+
         {/* ── ค้างประเมินรายเวรวันนี้ ─────────────────────────── */}
         <section className="mb-6">
           <h2 className="mb-2 text-base font-extrabold">ค้างประเมินแต่ละเวรวันนี้</h2>
@@ -139,23 +156,6 @@ export default async function RiskPage() {
             })}
           </ul>
         </section>
-
-        <RiskSection
-          title="ผู้ป่วยที่มีอาการแสดงการติดเชื้อ"
-          empty="ยังไม่มีผู้ป่วยที่บันทึกอาการแสดงไว้"
-          episodes={symptomatic}
-          tone="review"
-          badge={(e) => (awaiting.has(e.episode_id) ? 'รอวินิจฉัย' : 'มีอาการ')}
-        />
-
-        <RiskSection
-          title={`ผู้ป่วยคาสายตั้งแต่ ${LONG_STAY_DAYS} วันขึ้นไป`}
-          empty={`ยังไม่มีผู้ป่วยที่คาสายถึง ${LONG_STAY_DAYS} วัน`}
-          episodes={longStay}
-          tone="correct"
-          badge={() => 'ทบทวน NEED'}
-          note="ทบทวนความจำเป็นของการคาสายกับทีมผู้รักษา ยิ่งคาสายนานยิ่งเสี่ยงต่อ CAUTI"
-        />
       </main>
     </>
   );

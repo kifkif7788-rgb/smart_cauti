@@ -102,6 +102,52 @@ export function todayShiftWindows(
   ];
 }
 
+// ── ช่วงเวลาสำหรับรายงาน ────────────────────────────────────────────
+
+export type Period = 'day' | 'month' | 'year';
+
+export const PERIOD_LABEL: Record<Period, string> = {
+  day: 'รายวัน',
+  month: 'รายเดือน',
+  year: 'รายปี',
+};
+
+export const PERIOD_SCOPE: Record<Period, string> = {
+  day: 'วันนี้',
+  month: 'เดือนนี้',
+  year: 'ปีนี้',
+};
+
+export function isPeriod(value: unknown): value is Period {
+  return value === 'day' || value === 'month' || value === 'year';
+}
+
+/**
+ * ช่วงเวลาที่ใช้สรุปรายงาน ตามเขตเวลาไทย
+ *
+ * รายวันใช้ขอบเขตเดียวกับวันทำงาน (07:00 ถึง 07:00 ของวันถัดไป)
+ * เพื่อให้ตัวเลขตรงกับหน้าติดตามความเสี่ยง ส่วนรายเดือนและรายปีใช้ขอบเขตปฏิทิน
+ */
+export function periodWindow(
+  period: Period,
+  at: Date = new Date(),
+): { start: Date; end: Date } {
+  if (period === 'day') {
+    const shifts = todayShiftWindows(at);
+    return { start: shifts[0].start, end: shifts[shifts.length - 1].end };
+  }
+
+  const { y, m } = bangkokParts(at);
+  const startUtc =
+    period === 'month' ? Date.UTC(y, m - 1, 1) : Date.UTC(y, 0, 1);
+  const endUtc = period === 'month' ? Date.UTC(y, m, 1) : Date.UTC(y + 1, 0, 1);
+
+  return {
+    start: new Date(startUtc - BANGKOK_OFFSET_MS),
+    end: new Date(endUtc - BANGKOK_OFFSET_MS),
+  };
+}
+
 /**
  * Foley Day — วันที่เท่าไรของการคาสาย นับวันที่ใส่เป็นวันที่ 1
  * รับ insertDate เป็นสตริง YYYY-MM-DD จากคอลัมน์ date ของ Postgres

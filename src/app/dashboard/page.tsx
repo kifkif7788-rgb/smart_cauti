@@ -5,9 +5,9 @@ import { getSession, canAlwaysSeeDashboard } from '@/lib/auth';
 import { getActiveStudy, nurseCanSeeDashboard } from '@/lib/study';
 import { db } from '@/lib/db';
 import type { AssessmentRow } from '@/types/database';
-import { currentShiftWindow, foleyDay } from '@/lib/shift';
+import { periodWindow, isPeriod, foleyDay, type Period } from '@/lib/shift';
 
-export default async function DashboardPage() {
+export default async function DashboardPage(props: PageProps<'/dashboard'>) {
   const session = await getSession();
   if (!session) redirect('/login');
 
@@ -18,6 +18,9 @@ export default async function DashboardPage() {
 
   const wardCodes = session.wardCodes.length > 0 ? session.wardCodes : [study.ward_code];
 
+  const search = await props.searchParams;
+  const period: Period = isPeriod(search.period) ? search.period : 'day';
+
   const { data: episodes } = await db()
     .from('episode')
     .select('*')
@@ -26,16 +29,21 @@ export default async function DashboardPage() {
 
   if (!episodes) throw new Error('ไม่สามารถโหลดข้อมูลหอผู้ป่วยได้');
   const list = episodes;
-  const { start, end } = currentShiftWindow();
+  const { start, end } = periodWindow(period);
   const { data: assessments, error: assessmentError } = list.length ? await db()
     .from('assessment').select('*').in('episode_id', list.map(e => e.episode_id))
     .eq('source', 'NURSE').eq('study_mode', study.current_mode)
     .gte('assessed_at', start.toISOString()).lt('assessed_at', end.toISOString())
     .order('assessed_at', { ascending: false }) : { data: [], error: null };
   if (assessmentError) throw new Error('ไม่สามารถโหลดผลการประเมินได้');
-  const latest = new Map<string, AssessmentRow>();
-  for (const row of assessments ?? []) if (!latest.has(row.episode_id)) latest.set(row.episode_id, row);
-  const rows = [...latest.values()];
+  // รายวันดูสถานะล่าสุดของผู้ป่วยแต่ละราย ส่วนรายเดือน/รายปีนับทุกครั้งที่ประเมิน
+  // มิฉะนั้นข้อมูลทั้งเดือนจะเหลือรายละหนึ่งแถวและสัดส่วนที่ได้จะไม่สะท้อนการปฏิบัติจริง
+  let rows = assessments ?? [];
+  if (period === 'day') {
+    const latest = new Map<string, AssessmentRow>();
+    for (const row of rows) if (!latest.has(row.episode_id)) latest.set(row.episode_id, row);
+    rows = [...latest.values()];
+  }
   const pass = rows.filter(a => a.all_pass).length;
   const correct = rows.filter(a => a.feedback === 'CORRECT_NOW').length;
   const review = rows.filter(a => a.feedback === 'REVIEW_REMOVAL' || a.feedback === 'CLOSED_BREACH').length;
@@ -50,5 +58,5 @@ export default async function DashboardPage() {
   const peak = Math.max(1, ...trend.map(p => p.count));
   const longStay = list.filter((e) => foleyDay(e.insert_date) > 3);
 
-  return <DashboardView wardCodes={wardCodes} list={list} rows={rows} pass={pass} correct={correct} review={review} percent={percent} colors={colors} trend={trend} peak={peak} longStay={longStay} historyError={Boolean(historyError)} />;
+  return <DashboardView period={period} wardCodes={wardCodes} list={list} rows={rows} pass={pass} correct={correct} review={review} percent={percent} colors={colors} trend={trend} peak={peak} longStay={longStay} historyError={Boolean(historyError)} />;
 }

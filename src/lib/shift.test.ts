@@ -3,6 +3,7 @@ import {
   currentShift,
   currentShiftWindow,
   todayShiftWindows,
+  periodWindow,
   foleyDay,
   bangkokDateString,
   formatThaiDate,
@@ -116,5 +117,36 @@ describe('todayShiftWindows', () => {
       );
       expect(match?.start.toISOString()).toBe(cur.start.toISOString());
     }
+  });
+});
+
+describe('periodWindow', () => {
+  it('รายวันตรงกับขอบเขตวันทำงาน 07:00 ถึง 07:00', () => {
+    const { start, end } = periodWindow('day', bkk('2026-09-15T12:00:00'));
+    expect(start.toISOString()).toBe(bkk('2026-09-15T07:00:00').toISOString());
+    expect(end.toISOString()).toBe(bkk('2026-09-16T07:00:00').toISOString());
+  });
+
+  it('รายเดือนครอบทั้งเดือนตามเวลาไทย', () => {
+    const { start, end } = periodWindow('month', bkk('2026-09-15T12:00:00'));
+    expect(start.toISOString()).toBe(bkk('2026-09-01T00:00:00').toISOString());
+    expect(end.toISOString()).toBe(bkk('2026-10-01T00:00:00').toISOString());
+  });
+
+  it('รายเดือนข้ามปีตอนธันวาคม', () => {
+    const { end } = periodWindow('month', bkk('2026-12-20T12:00:00'));
+    expect(end.toISOString()).toBe(bkk('2027-01-01T00:00:00').toISOString());
+  });
+
+  it('รายปีครอบทั้งปีตามเวลาไทย', () => {
+    const { start, end } = periodWindow('year', bkk('2026-09-15T12:00:00'));
+    expect(start.toISOString()).toBe(bkk('2026-01-01T00:00:00').toISOString());
+    expect(end.toISOString()).toBe(bkk('2027-01-01T00:00:00').toISOString());
+  });
+
+  it('เที่ยงคืนครึ่งของไทยยังนับเป็นเดือนเดิม ไม่ใช่เดือนก่อนตาม UTC', () => {
+    // 00:30 ไทย = 17:30 UTC ของวันก่อน ถ้าคำนวณด้วย UTC จะตกเดือนผิด
+    const { start } = periodWindow('month', bkk('2026-09-01T00:30:00'));
+    expect(start.toISOString()).toBe(bkk('2026-09-01T00:00:00').toISOString());
   });
 });

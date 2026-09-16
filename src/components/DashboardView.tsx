@@ -2,11 +2,13 @@ import Link from 'next/link';
 import { UiIcon } from './UiIcon';
 import { DashboardRefresh } from './DashboardRefresh';
 import { AppHeader } from './AppHeader';
+import { PERIOD_LABEL, PERIOD_SCOPE, type Period } from '@/lib/shift';
 import { CHECK5_ITEMS } from '@/lib/check5';
 import { foleyDay } from '@/lib/shift';
 import type { AssessmentRow, EpisodeRow } from '@/types/database';
 
 interface Props {
+  period: Period;
   wardCodes: string[];
   list: EpisodeRow[];
   rows: AssessmentRow[];
@@ -21,12 +23,19 @@ interface Props {
   historyError: boolean;
 }
 
-export function DashboardView({ wardCodes, list, rows, pass, correct, review, percent, colors, trend, peak, longStay, historyError }: Props) {
+export function DashboardView({ period, wardCodes, list, rows, pass, correct, review, percent, colors, trend, peak, longStay, historyError }: Props) {
   return (
     <>
       <AppHeader title="Dashboard" backHref="/" subtitle={wardCodes.join(', ')} />
       <main className="dashboard-page mx-auto max-w-2xl px-4 pb-16 pt-4">
-        <div className="mb-4"><h2 className="text-lg font-extrabold">ภาพรวมการดูแล · {wardCodes.join(', ')}</h2><p className="dashboard-subtitle">ข้อมูล ณ {new Intl.DateTimeFormat('th-TH', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Bangkok' }).format(new Date())} · <DashboardRefresh /></p></div>
+        <div className="mb-4"><h2 className="text-lg font-extrabold">ภาพรวมการดูแล · {wardCodes.join(', ')}</h2><p className="dashboard-subtitle">ข้อมูล ณ {new Intl.DateTimeFormat('th-TH', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Bangkok' }).format(new Date())} · <DashboardRefresh /></p>
+          <nav className="period-tabs" aria-label="เลือกช่วงเวลา">
+            {(Object.keys(PERIOD_LABEL) as Period[]).map((key) => (
+              <Link key={key} href={`/dashboard?period=${key}`} aria-current={period === key ? 'page' : undefined}>
+                {PERIOD_LABEL[key]}
+              </Link>
+            ))}
+          </nav></div>
         <div className="dashboard-metrics grid grid-cols-2 gap-3">
           <div className="surface text-center"><div className="metric-label">ผู้ป่วยที่ใส่ Foley</div><div className="metric-value">{list.length}<small>ราย</small></div></div>
           <div className="surface text-center"><div className="metric-label">Foley &gt; 3 วัน</div><div className="metric-value metric-review">{longStay.length}<small>ราย</small></div></div>
@@ -37,15 +46,17 @@ export function DashboardView({ wardCodes, list, rows, pass, correct, review, pe
           <div style={{ background: 'var(--correct-bg)', color: 'var(--correct)' }}><div className="risk-label"><span style={{ background: 'var(--correct)' }}><UiIcon name="alert"/></span>ต้องแก้ไข</div><strong>{correct} <small className="text-xs">ราย</small></strong></div>
           <div style={{ background: 'var(--review-bg)', color: 'var(--review)' }}><div className="risk-label"><span style={{ background: 'var(--review)' }}><UiIcon name="alert"/></span>ต้องทบทวน</div><strong>{review} <small className="text-xs">ราย</small></strong></div>
         </div>
-        <p className="dashboard-subtitle">ผลล่าสุดในเวรนี้ · ประเมินแล้ว {rows.length}/{list.length} ราย · ยังไม่ประเมิน {list.length - rows.length} ราย</p>
+        <p className="dashboard-subtitle">{period === 'day'
+          ? `ผลล่าสุด${PERIOD_SCOPE[period]} · ประเมินแล้ว ${rows.length}/${list.length} ราย · ยังไม่ประเมิน ${list.length - rows.length} ราย`
+          : `รวมการประเมิน${PERIOD_SCOPE[period]} ${rows.length} ครั้ง`}</p>
         <section className="surface dashboard-card">
           <h2>ความครอบคลุมการดูแล (Bundle Compliance)</h2>
-          <p className="dashboard-subtitle">สัดส่วนที่ผ่านทั้ง 5 ข้อ จากผู้ป่วยที่ประเมินในเวรนี้</p>
+          <p className="dashboard-subtitle">{period === 'day' ? 'สัดส่วนที่ผ่านทั้ง 5 ข้อ จากผู้ป่วยที่ประเมินวันนี้' : `สัดส่วนที่ผ่านทั้ง 5 ข้อ จากการประเมินทั้งหมด${PERIOD_SCOPE[period]}`}</p>
           <div className="compliance-layout">
             <div className="compliance-ring" role="img" aria-label={percent === null ? 'ยังไม่มีข้อมูล' : `ผ่านเกณฑ์ ${percent}%`} style={{ background: percent === null ? 'var(--border)' : `conic-gradient(#2ebd87 ${percent}%, #f47795 0)` }}><strong>{percent === null ? '—' : `${percent}%`}</strong></div>
             <div className="chart-legend"><p><i style={{ background: '#2ebd87' }}/>ผ่าน {percent === null ? '—' : `${percent}%`}</p><p><i style={{ background: '#f47795' }}/>ไม่ผ่าน {percent === null ? '—' : `${100 - percent}%`}</p></div>
           </div>
-          {percent === null && <p className="dashboard-subtitle text-center">ยังไม่มีผลการประเมินในเวรนี้</p>}
+          {percent === null && <p className="dashboard-subtitle text-center">ยังไม่มีผลการประเมิน{PERIOD_SCOPE[period]}</p>}
         </section>
         <section className="surface dashboard-card bundle-chart">
           <h2>ผลการประเมินรายข้อ</h2>
