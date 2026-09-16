@@ -72,7 +72,11 @@ export function InfectionDiagnosisForm({
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<{ outcome: DiagnosisOutcome; reason: string | null } | null>(null);
+  const [result, setResult] = useState<{
+    outcome: DiagnosisOutcome;
+    reason: string | null;
+    note: string | null;
+  } | null>(null);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -113,10 +117,17 @@ export function InfectionDiagnosisForm({
         error?: string;
         outcome?: DiagnosisOutcome;
         reason?: string | null;
+        note?: string | null;
       };
       if (!response.ok) throw new Error(data.error ?? 'บันทึกไม่สำเร็จ');
 
-      if (data.outcome) setResult({ outcome: data.outcome, reason: data.reason ?? null });
+      if (data.outcome) {
+        setResult({
+          outcome: data.outcome,
+          reason: data.reason ?? null,
+          note: data.note ?? null,
+        });
+      }
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'บันทึกไม่สำเร็จ');
@@ -220,7 +231,7 @@ function OutcomeDialog({
   result,
   onClose,
 }: {
-  result: { outcome: DiagnosisOutcome; reason: string | null };
+  result: { outcome: DiagnosisOutcome; reason: string | null; note: string | null };
   onClose: () => void;
 }) {
   const infected = result.outcome !== 'NO_INFECTION';
@@ -239,7 +250,9 @@ function OutcomeDialog({
         <div className="outcome-title" style={{ color: `var(--${tone})` }}>
           {OUTCOME_LABEL[result.outcome]}
         </div>
-        {result.reason && <p className="outcome-reason">{result.reason}</p>}
+        {(result.reason ?? result.note) && (
+          <p className="outcome-reason">{result.reason ?? result.note}</p>
+        )}
         <button type="button" onClick={onClose} className="btn-primary mt-4 w-full">
           ปิด
         </button>

@@ -5,6 +5,7 @@ import {
   validateDiagnosis,
   validateSymptoms,
   notInfectedReason,
+  outcomeNote,
   ORGANISMS,
   SYMPTOMS,
   type DiagnosisInput,
@@ -241,7 +242,22 @@ describe('notInfectedReason', () => {
     expect(notInfectedReason('NO_GROWTH', true)).toMatch(/ไม่พบเชื้อ/);
   });
 
-  it('เชื้อที่ไม่ใช่แบคทีเรียไม่เข้าเกณฑ์ CAUTI', () => {
-    expect(notInfectedReason('NON_BACTERIAL', true)).toMatch(/ไม่ใช่แบคทีเรีย/);
+  it('เชื้อที่ไม่ใช่แบคทีเรียแต่มีอาการ ถือว่าติดเชื้อ', () => {
+    expect(notInfectedReason('NON_BACTERIAL', true)).toBeNull();
+  });
+
+  it('เชื้อที่ไม่ใช่แบคทีเรียแต่ไม่มีอาการ ยังไม่เข้าเกณฑ์', () => {
+    expect(notInfectedReason('NON_BACTERIAL', false)).toMatch(/ยังไม่มีอาการ/);
+  });
+});
+
+describe('outcomeNote', () => {
+  it('กำกับว่าเชื้อที่ไม่ใช่แบคทีเรียนับเป็น UTI', () => {
+    expect(outcomeNote('NON_BACTERIAL')).toMatch(/นับเป็นการติดเชื้อทางเดินปัสสาวะ \(UTI\)/);
+  });
+
+  it('เชื้อแบคทีเรียไม่ต้องกำกับอะไร', () => {
+    expect(outcomeNote('SIGNIFICANT')).toBeNull();
+    expect(outcomeNote('NO_GROWTH')).toBeNull();
   });
 });

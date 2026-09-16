@@ -88,9 +88,20 @@ export function notInfectedReason(
   hasSymptoms: boolean,
 ): string | null {
   if (ucResult === 'NO_GROWTH') return 'ผล U/C ไม่พบเชื้อ';
-  if (ucResult === 'NON_BACTERIAL') return 'เชื้อที่พบไม่ใช่แบคทีเรีย จึงไม่เข้าเกณฑ์';
   if (!hasSymptoms) return 'พบเชื้อแต่ยังไม่มีอาการแสดง';
   return null;
+}
+
+/**
+ * ข้อสังเกตกำกับผลที่เข้าเกณฑ์ติดเชื้อแล้ว
+ *
+ * เชื้อที่ไม่ใช่แบคทีเรียเมื่อมีอาการร่วมด้วยนับเป็นการติดเชื้อทางเดินปัสสาวะ (UTI)
+ * และแยก HAI/CI ตามวันที่เหมือนกัน กำกับไว้เพื่อให้เห็นว่าเป็นคนละชนิดเชื้อกัน
+ */
+export function outcomeNote(ucResult: UcResult): string | null {
+  return ucResult === 'NON_BACTERIAL'
+    ? 'เชื้อที่พบไม่ใช่แบคทีเรีย นับเป็นการติดเชื้อทางเดินปัสสาวะ (UTI)'
+    : null;
 }
 
 export const ORIGIN_LABEL: Record<InfectionOrigin, string> = {

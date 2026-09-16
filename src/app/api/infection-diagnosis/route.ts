@@ -4,6 +4,7 @@ import { getSession } from '@/lib/auth';
 import { canDiagnoseInfection } from '@/lib/auth-roles';
 import {
   notInfectedReason,
+  outcomeNote,
   validateDiagnosis,
   type CatheterAtDoe,
   type DiagnosisInput,
@@ -183,5 +184,10 @@ export async function POST(request: NextRequest) {
     detail: { studyCode: episode.study_code, origin: saved.origin, outcome },
   });
 
-  return Response.json({ diagnosisId: saved.diagnosis_id, outcome, reason });
+  return Response.json({
+    diagnosisId: saved.diagnosis_id,
+    outcome,
+    reason,
+    note: reason ? null : outcomeNote(input.ucResult),
+  });
 }
