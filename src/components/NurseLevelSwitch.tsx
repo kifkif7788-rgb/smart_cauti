@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   NURSE_LEVEL,
   NURSE_LEVEL_COOKIE,
@@ -15,11 +16,14 @@ import {
  * ไม่ต้องรอ JavaScript ฝั่ง client อ่านค่าก่อน
  */
 export function NurseLevelSwitch({ initial }: { initial: NurseLevel | null }) {
+  const router = useRouter();
   const [level, setLevel] = useState<NurseLevel | null>(initial);
 
   function pick(next: NurseLevel) {
     document.cookie = `${NURSE_LEVEL_COOKIE}=${next}; path=/; max-age=${NURSE_LEVEL_MAX_AGE}; samesite=lax`;
     setLevel(next);
+    // ปุ่มสแกนเป็น server component จึงต้อง render ใหม่เพื่อให้ปลดล็อกทันที
+    router.refresh();
   }
 
   return (

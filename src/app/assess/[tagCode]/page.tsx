@@ -18,6 +18,7 @@ import { InvalidTag } from '@/components/InvalidTag';
 import { ScanRequired } from '@/components/ScanRequired';
 import { hasScanProof } from '@/lib/scan-proof';
 import { readNurseLevelCookie } from '@/lib/nurse-level-cookie';
+import { NurseLevelSwitch } from '@/components/NurseLevelSwitch';
 
 export default async function AssessPage(props: PageProps<'/assess/[tagCode]'>) {
   const session = await getSession();
@@ -51,6 +52,26 @@ export default async function AssessPage(props: PageProps<'/assess/[tagCode]'>) 
   // ตรวจก่อน writeAudit เพื่อไม่ให้ความพยายามที่ถูกปฏิเสธถูกบันทึกเป็นการเปิดดูข้อมูลผู้ป่วย
   if (!(await hasScanProof(tagCode))) {
     return <ScanRequired bedNo={episode.bed_no} />;
+  }
+
+  // สแกนเข้ามาโดยไม่ผ่านหน้าแรกจะยังไม่มีคุณวุฒิผู้ประเมิน ต้องถามก่อนเปิดแบบประเมิน
+  // ถามที่นี่ก่อน writeAudit เพราะยังไม่ได้เปิดดูข้อมูลผู้ป่วยจริง
+  const nurseLevel = await readNurseLevelCookie();
+  if (!nurseLevel) {
+    return (
+      <>
+        <AppHeader title="ก่อนเริ่มประเมิน" backHref="/" subtitle={`เตียง ${episode.bed_no}`} />
+        <main className="mx-auto max-w-2xl px-4 pb-16 pt-6">
+          <div className="surface p-5">
+            <p className="text-[14px] leading-relaxed" style={{ color: 'var(--muted)' }}>
+              ระบุก่อนว่าผู้ประเมินเป็นใคร ระบบจะจำไว้ใช้กับทุกเตียงในเวรนี้
+              และเปิดแบบประเมิน CHECK 5 ให้ทันที
+            </p>
+            <NurseLevelSwitch initial={null} />
+          </div>
+        </main>
+      </>
+    );
   }
 
   // การเปิดดูข้อมูลผู้ป่วยต้องสืบย้อนได้ตามนโยบายข้อมูลส่วนบุคคล
@@ -112,7 +133,7 @@ export default async function AssessPage(props: PageProps<'/assess/[tagCode]'>) 
           foleyDay: day,
         }}
         today={bangkokDateString()}
-        defaultNurseLevel={await readNurseLevelCookie()}
+        nurseLevel={nurseLevel}
         studyMode={study.current_mode}
         assessedThisShift={(count ?? 0) > 0}
       >

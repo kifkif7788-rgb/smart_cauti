@@ -418,3 +418,6 @@ body > main, body > .assessment-page, body > header + main { max-width:540px; }
 .outcome-eyebrow { font-size:12px; font-weight:700; color:var(--muted); }
 .outcome-title { margin-top:6px; font-size:19px; font-weight:800; line-height:1.4; }
 .outcome-reason { margin-top:8px; font-size:13px; line-height:1.6; color:var(--muted); }
+
+/* ปุ่มสแกนที่ยังล็อกอยู่เพราะยังไม่เลือก RN/PN */
+.scan-launch.is-locked { filter:grayscale(.75); opacity:.5; cursor:not-allowed; }

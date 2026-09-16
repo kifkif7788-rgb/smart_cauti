@@ -6,7 +6,6 @@ import { BundleIcon, UiIcon } from '@/components/UiIcon';
 import {
   CHECK5_ITEMS,
   NURSE_LEVEL,
-  isNurseLevel,
   type Check5Key,
   type NurseLevel,
 } from '@/lib/check5';
@@ -35,8 +34,8 @@ interface Props {
   episode: EpisodeSummary;
   /** วันที่ตามเวลาไทย ใช้เป็นเพดานของช่องวันที่ในส่วนวินิจฉัย */
   today: string;
-  /** คุณวุฒิที่เลือกไว้ที่หน้าแรก — null เมื่อเข้ามาโดยไม่ผ่านหน้าแรก */
-  defaultNurseLevel?: NurseLevel | null;
+  /** คุณวุฒิผู้ประเมิน — หน้าประเมินถามก่อนเปิดฟอร์มแล้ว จึงมีค่าเสมอ */
+  nurseLevel: NurseLevel;
   /** โหมดบันทึกข้อมูลโครงการ; ทุกโหมดเปิดหน้าผลหลังบันทึกสำเร็จ */
   studyMode: 'BASELINE' | 'INTERVENTION';
   assessedThisShift: boolean;
@@ -51,14 +50,13 @@ type AnswerState = Partial<Record<Check5Key, boolean>>;
 export function Check5Form({
   episode,
   today,
-  defaultNurseLevel = null,
+  nurseLevel,
   assessedThisShift,
   children,
   preview = false,
 }: Props) {
   const router = useRouter();
   const [answers, setAnswers] = useState<AnswerState>({});
-  const [nurseLevel, setNurseLevel] = useState<NurseLevel | null>(defaultNurseLevel);
   // มีอาการแสดงเมื่อไร จึงเปิดส่วนวินิจฉัยให้กรอกต่อในหน้าเดียวกัน
   const [symptoms, setSymptoms] = useState<SymptomEntry[]>([]);
   const [details, setDetails] = useState<DiagnosisDetails>(EMPTY_DETAILS);
@@ -78,13 +76,11 @@ export function Check5Form({
       const draft = JSON.parse(raw) as {
         answers?: AnswerState;
         notes?: string;
-        nurseLevel?: unknown;
         symptoms?: SymptomEntry[];
         details?: DiagnosisDetails;
       };
       if (draft.answers) setAnswers(draft.answers);
       if (typeof draft.notes === 'string') setNotes(draft.notes);
-      if (isNurseLevel(draft.nurseLevel)) setNurseLevel(draft.nurseLevel);
       if (Array.isArray(draft.symptoms)) setSymptoms(draft.symptoms);
       if (draft.details) setDetails(draft.details);
     } catch {
@@ -96,12 +92,12 @@ export function Check5Form({
     try {
       sessionStorage.setItem(
         draftKey,
-        JSON.stringify({ answers, notes, nurseLevel, symptoms, details }),
+        JSON.stringify({ answers, notes, symptoms, details }),
       );
     } catch {
       /* ไม่ทำอะไร */
     }
-  }, [answers, notes, nurseLevel, symptoms, details, draftKey]);
+  }, [answers, notes, symptoms, details, draftKey]);
 
   const answeredCount = useMemo(
     () => CHECK5_ITEMS.filter((i) => answers[i.key] !== undefined).length,
@@ -126,14 +122,6 @@ export function Check5Form({
       return;
     }
 
-    if (!nurseLevel) {
-      setShowMissing(true);
-      setError('กรุณาเลือกว่าผู้ประเมินเป็น RN หรือ PN');
-      document
-        .getElementById('nurse-level')
-        ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      return;
-    }
 
     // ผู้ป่วยที่ยังคาสายอยู่เสมอในหน้านี้ เกณฑ์ที่ต้องถอดสายก่อนจึงไม่ถูกแสดงให้เลือก
     if (symptoms.length > 0) {
@@ -316,56 +304,16 @@ export function Check5Form({
           );
         })}
 
-        {/* ── ผู้ประเมิน ────────────────────────────────────────── */}
-        {/* ปกติเลือกไว้แล้วที่หน้าแรก ตรงนี้จึงแสดงยืนยัน — ยกเว้นเข้ามาโดยไม่ผ่านหน้าแรก */}
-        {defaultNurseLevel ? (
-          <div id="nurse-level" className="assessment-notes">
-            <div className="text-sm font-bold">ผู้ประเมิน</div>
-            <div className="mt-1.5 text-[15px] font-bold" style={{ color: 'var(--primary)' }}>
-              {NURSE_LEVEL[defaultNurseLevel]}
-            </div>
-            <p className="mt-0.5 text-[12.5px]" style={{ color: 'var(--muted)' }}>
-              เลือกไว้ที่หน้าแรก เปลี่ยนได้ที่หน้าแรก
-            </p>
+        {/* ── ผู้ประเมิน — เลือกไว้ก่อนเข้าฟอร์มแล้ว ตรงนี้แสดงยืนยัน ── */}
+        <div id="nurse-level" className="assessment-notes">
+          <div className="text-sm font-bold">ผู้ประเมิน</div>
+          <div className="mt-1.5 text-[15px] font-bold" style={{ color: 'var(--primary)' }}>
+            {NURSE_LEVEL[nurseLevel]}
           </div>
-        ) : (
-        <fieldset id="nurse-level" className="assessment-notes">
-          <legend className="text-sm font-bold">ผู้ประเมิน</legend>
-          <div className="mt-2 grid grid-cols-2 gap-2">
-            {(Object.keys(NURSE_LEVEL) as NurseLevel[]).map((level) => {
-              const active = nurseLevel === level;
-              return (
-                <label
-                  key={level}
-                  className="flex items-center justify-center gap-2 rounded-lg border px-3 py-3 text-[15px] font-bold"
-                  style={{
-                    background: active ? 'var(--primary)' : 'var(--surface-2)',
-                    borderColor: active ? 'var(--primary)' : 'var(--border)',
-                    color: active ? '#fff' : 'var(--text)',
-                  }}
-                >
-                  <input
-                    type="radio"
-                    name="nurse-level"
-                    className="sr-only"
-                    checked={active}
-                    onChange={() => {
-                      setNurseLevel(level);
-                      setError(null);
-                    }}
-                  />
-                  {NURSE_LEVEL[level]}
-                </label>
-              );
-            })}
-          </div>
-          {showMissing && !nurseLevel && (
-            <p className="mt-1.5 text-[12.5px] font-semibold" style={{ color: 'var(--review)' }}>
-              ยังไม่ได้เลือกผู้ประเมิน
-            </p>
-          )}
-        </fieldset>
-        )}
+          <p className="mt-0.5 text-[12.5px]" style={{ color: 'var(--muted)' }}>
+            เปลี่ยนได้ที่หน้าแรก
+          </p>
+        </div>
 
         {/* ── อาการแสดงการติดเชื้อ ─────────────────────────────── */}
         <div className="assessment-notes">
