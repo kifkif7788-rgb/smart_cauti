@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import {
-  classifyOrigin,
   daysBetween,
   filterOrganisms,
   validateDiagnosis,
@@ -18,27 +17,6 @@ describe('daysBetween', () => {
 
   it('นับข้ามปีอธิกสุรทินได้ถูกต้อง', () => {
     expect(daysBetween('2028-02-28', '2028-03-01')).toBe(2);
-  });
-});
-
-describe('classifyOrigin', () => {
-  // เกณฑ์: DOE ลบ Admit ≥ 3 วัน = HAI, < 3 วัน = CI
-  it.each([
-    ['2026-09-01', '2026-09-04', 'HAI'],
-    ['2026-09-01', '2026-09-10', 'HAI'],
-    ['2026-09-01', '2026-09-03', 'CI'],
-    ['2026-09-01', '2026-09-01', 'CI'],
-  ])('admit %s + doe %s → %s', (admit, doe, expected) => {
-    expect(classifyOrigin(admit, doe)).toBe(expected);
-  });
-
-  it('คืน null เมื่อ DOE มาก่อนวัน admit', () => {
-    expect(classifyOrigin('2026-09-10', '2026-09-01')).toBeNull();
-  });
-
-  it('คืน null เมื่อวันที่ยังกรอกไม่ครบ', () => {
-    expect(classifyOrigin('', '2026-09-04')).toBeNull();
-    expect(classifyOrigin('2026-09-01', '')).toBeNull();
   });
 });
 
@@ -122,7 +100,10 @@ describe('validateDiagnosis', () => {
     admitDx: 'Sepsis',
     catheterAtDoe: 'GT_2_DAYS',
     ucResult: 'SIGNIFICANT',
+    ucResultDate: '2026-09-05',
     organisms: ['E. coli'],
+    organismOther: null,
+    nonBacterialOrganism: null,
     symptoms: [],
   };
 
@@ -174,6 +155,66 @@ describe('validateDiagnosis', () => {
   it('วันที่ว่างไม่ผ่าน', () => {
     expect(validateDiagnosis({ ...valid, admitDate: '' }, false)).toMatch(
       /วันแรกของการนอน/,
+    );
+  });
+
+  it('เชื้อที่ระบุเองนับรวมในโควตา 2 ชนิด', () => {
+    // หนึ่งจากรายการ + หนึ่งที่พิมพ์เอง = ครบสอง ผ่านได้
+    expect(
+      validateDiagnosis({ ...valid, organismOther: 'Klebsiella pneumoniae' }, false),
+    ).toBeNull();
+    // สองจากรายการ + หนึ่งที่พิมพ์เอง = เกิน
+    expect(
+      validateDiagnosis(
+        { ...valid, organisms: ['E. coli', 'MRSA'], organismOther: 'Klebsiella' },
+        false,
+      ),
+    ).toMatch(/ไม่เกิน 2/);
+  });
+
+  it('เลือกอื่นๆ แต่ไม่พิมพ์ชื่อไม่ผ่าน', () => {
+    expect(validateDiagnosis({ ...valid, organismOther: '' }, false)).toMatch(/กรุณาระบุ/);
+  });
+
+  it('ระบุเชื้อเองอย่างเดียวโดยไม่เลือกจากรายการก็ผ่าน', () => {
+    expect(
+      validateDiagnosis({ ...valid, organisms: [], organismOther: 'Candida' }, false),
+    ).toBeNull();
+  });
+
+  it('ผลที่ไม่ใช่แบคทีเรียต้องระบุชื่อเชื้อ', () => {
+    const base = { ...valid, ucResult: 'NON_BACTERIAL' as const, organisms: [] };
+    expect(validateDiagnosis({ ...base, nonBacterialOrganism: null }, false)).toMatch(
+      /ระบุชื่อเชื้อที่ไม่ใช่แบคทีเรีย/,
+    );
+    expect(
+      validateDiagnosis({ ...base, nonBacterialOrganism: 'Candida albicans' }, false),
+    ).toBeNull();
+  });
+
+  it('ผลที่ไม่ใช่แบคทีเรียห้ามเลือกเชื้อจากรายการไปด้วย', () => {
+    expect(
+      validateDiagnosis(
+        { ...valid, ucResult: 'NON_BACTERIAL', nonBacterialOrganism: 'Candida' },
+        false,
+      ),
+    ).toMatch(/ช่องของตัวเอง/);
+  });
+
+  it('ไม่พบเชื้อห้ามมีชื่อเชื้อค้างจากผลแบบอื่น', () => {
+    const base = { ...valid, ucResult: 'NO_GROWTH' as const, organisms: [] };
+    expect(validateDiagnosis({ ...base, organismOther: 'Candida' }, false)).toMatch(
+      /ระบุชื่อเชื้อไม่ได้/,
+    );
+    expect(
+      validateDiagnosis({ ...base, nonBacterialOrganism: 'Candida' }, false),
+    ).toMatch(/ไม่ใช่แบคทีเรียไม่ได้/);
+  });
+
+  it('วันที่ส่งผล U/C เว้นว่างได้ แต่ถ้ากรอกต้องถูกรูปแบบ', () => {
+    expect(validateDiagnosis({ ...valid, ucResultDate: null }, false)).toBeNull();
+    expect(validateDiagnosis({ ...valid, ucResultDate: '05/09/2026' }, false)).toMatch(
+      /วันที่ส่งผล U\/C ไม่ถูกต้อง/,
     );
   });
 

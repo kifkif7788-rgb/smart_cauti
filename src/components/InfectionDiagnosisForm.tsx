@@ -5,10 +5,9 @@ import { useRouter } from 'next/navigation';
 import {
   CATHETER_AT_DOE,
   MAX_ORGANISMS,
-  ORIGIN_LABEL,
+  ORGANISM_NAME_MAX,
   SYMPTOMS,
   UC_RESULT,
-  classifyOrigin,
   filterOrganisms,
   validateDiagnosis,
   validateSymptoms,
@@ -24,7 +23,10 @@ export interface ExistingDiagnosis {
   admitDx: string | null;
   catheterAtDoe: CatheterAtDoe;
   ucResult: UcResult;
+  ucResultDate: string | null;
   organisms: string[];
+  organismOther: string | null;
+  nonBacterialOrganism: string | null;
   symptoms: SymptomEntry[];
 }
 
@@ -56,8 +58,14 @@ export function InfectionDiagnosisForm({
     existing?.catheterAtDoe ?? '',
   );
   const [ucResult, setUcResult] = useState<UcResult | ''>(existing?.ucResult ?? '');
+  const [ucResultDate, setUcResultDate] = useState(existing?.ucResultDate ?? '');
   const [organisms, setOrganisms] = useState<string[]>(existing?.organisms ?? []);
   const [organismQuery, setOrganismQuery] = useState('');
+  // null = ไม่ได้เลือก "อื่นๆ" / สตริงว่าง = เลือกแล้วแต่ยังไม่พิมพ์ชื่อ
+  const [organismOther, setOrganismOther] = useState<string | null>(
+    existing?.organismOther ?? null,
+  );
+  const [nonBacterial, setNonBacterial] = useState(existing?.nonBacterialOrganism ?? '');
 
   // 10.2.4 — เก็บเป็น map เพื่อให้ติ๊ก/ถอดอาการแล้วยังจำวันที่ที่กรอกไว้
   const [hasSymptoms, setHasSymptoms] = useState((existing?.symptoms.length ?? 0) > 0);
@@ -69,22 +77,38 @@ export function InfectionDiagnosisForm({
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
-  const origin = classifyOrigin(admitDate, doeDate);
   const visibleOrganisms = useMemo(
     () => filterOrganisms(organismQuery),
     [organismQuery],
   );
 
+  // เชื้อที่ระบุเองนับรวมกับเชื้อที่เลือกจากรายการ ตามเกณฑ์ที่ให้พบได้ไม่เกิน 2 ชนิด
+  const chosenCount = organisms.length + (organismOther !== null ? 1 : 0);
+
   function toggleOrganism(name: string) {
     setError(null);
-    setOrganisms((current) => {
-      if (current.includes(name)) return current.filter((o) => o !== name);
-      if (current.length >= MAX_ORGANISMS) {
-        setError(`เลือกเชื้อได้ไม่เกิน ${MAX_ORGANISMS} ชนิด`);
-        return current;
-      }
-      return [...current, name];
-    });
+    if (organisms.includes(name)) {
+      setOrganisms((current) => current.filter((o) => o !== name));
+      return;
+    }
+    if (chosenCount >= MAX_ORGANISMS) {
+      setError(`เลือกเชื้อได้ไม่เกิน ${MAX_ORGANISMS} ชนิด`);
+      return;
+    }
+    setOrganisms((current) => [...current, name]);
+  }
+
+  function toggleOrganismOther() {
+    setError(null);
+    if (organismOther !== null) {
+      setOrganismOther(null);
+      return;
+    }
+    if (chosenCount >= MAX_ORGANISMS) {
+      setError(`เลือกเชื้อได้ไม่เกิน ${MAX_ORGANISMS} ชนิด`);
+      return;
+    }
+    setOrganismOther('');
   }
 
   function toggleSymptom(code: SymptomCode) {
@@ -114,8 +138,12 @@ export function InfectionDiagnosisForm({
   function pickUcResult(value: UcResult) {
     setError(null);
     setUcResult(value);
-    // ไม่พบเชื้อแล้วต้องไม่มีชื่อเชื้อค้างไว้จากการเลือกครั้งก่อน
-    if (value === 'NO_GROWTH') setOrganisms([]);
+    // ล้างข้อมูลของผลแบบเดิม เพื่อไม่ให้ชื่อเชื้อค้างข้ามประเภทผล
+    if (value !== 'SIGNIFICANT') {
+      setOrganisms([]);
+      setOrganismOther(null);
+    }
+    if (value !== 'NON_BACTERIAL') setNonBacterial('');
   }
 
   async function handleSubmit(event: React.FormEvent) {
@@ -142,7 +170,10 @@ export function InfectionDiagnosisForm({
       admitDx: admitDx.trim(),
       catheterAtDoe: catheterAtDoe as CatheterAtDoe,
       ucResult: ucResult as UcResult,
+      ucResultDate: ucResultDate || null,
       organisms,
+      organismOther: organismOther === null ? null : organismOther.trim(),
+      nonBacterialOrganism: ucResult === 'NON_BACTERIAL' ? nonBacterial.trim() : null,
       symptoms: hasSymptoms ? chosen : [],
     };
 
@@ -231,31 +262,6 @@ export function InfectionDiagnosisForm({
             style={inputStyle}
           />
         </div>
-
-        {/* สรุปอัตโนมัติจากข้อ 8 ลบ ข้อ 7 */}
-        {origin && (
-          <div
-            role="status"
-            className="rounded-xl border-l-4 px-4 py-3"
-            style={{
-              background: origin === 'HAI' ? 'var(--review-bg)' : 'var(--pass-bg)',
-              borderColor: origin === 'HAI' ? 'var(--review)' : 'var(--pass)',
-            }}
-          >
-            <div
-              className="text-[11px] font-bold tracking-wider"
-              style={{ color: 'var(--muted)' }}
-            >
-              สรุปอัตโนมัติ
-            </div>
-            <div
-              className="mt-0.5 font-extrabold"
-              style={{ color: origin === 'HAI' ? 'var(--review)' : 'var(--pass)' }}
-            >
-              {ORIGIN_LABEL[origin]}
-            </div>
-          </div>
-        )}
       </section>
 
       {/* ── ข้อ 10.2 ───────────────────────────────────────────────── */}
@@ -353,8 +359,64 @@ export function InfectionDiagnosisForm({
                   />
                   <span className="text-[14px]">{UC_RESULT.SIGNIFICANT}</span>
                 </label>
+
+                <label
+                  className="flex items-start gap-3 rounded-lg px-3 py-2.5"
+                  style={{
+                    background:
+                      ucResult === 'NON_BACTERIAL' ? 'var(--surface-2)' : 'transparent',
+                  }}
+                >
+                  <input
+                    type="radio"
+                    name="uc-result"
+                    checked={ucResult === 'NON_BACTERIAL'}
+                    onChange={() => pickUcResult('NON_BACTERIAL')}
+                    className="mt-0.5 h-5 w-5 shrink-0"
+                  />
+                  <span className="text-[14px]">{UC_RESULT.NON_BACTERIAL}</span>
+                </label>
+              </div>
+
+              <div className="mt-3">
+                <label htmlFor="uc-result-date" className="text-sm font-bold">
+                  วันที่ส่งผล U/C
+                </label>
+                <input
+                  id="uc-result-date"
+                  type="date"
+                  value={ucResultDate}
+                  max={today}
+                  onChange={(e) => {
+                    setUcResultDate(e.target.value);
+                    setError(null);
+                  }}
+                  className="mt-1.5 w-full rounded-lg border px-3.5 text-[16px]"
+                  style={inputStyle}
+                />
               </div>
             </fieldset>
+
+            {ucResult === 'NON_BACTERIAL' && (
+              <div>
+                <label htmlFor="non-bacterial" className="text-sm font-bold">
+                  ระบุเชื้อที่พบ
+                </label>
+                <input
+                  id="non-bacterial"
+                  value={nonBacterial}
+                  onChange={(e) => {
+                    setNonBacterial(e.target.value.slice(0, ORGANISM_NAME_MAX));
+                    setError(null);
+                  }}
+                  placeholder="เช่น Candida albicans"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  className="mt-1.5 w-full rounded-lg border px-3.5 text-[16px]"
+                  style={inputStyle}
+                />
+              </div>
+            )}
 
             {ucResult === 'NO_GROWTH' && (
               <p
@@ -376,7 +438,7 @@ export function InfectionDiagnosisForm({
                     className="text-[12.5px] font-bold tabular-nums"
                     style={{ color: 'var(--muted)' }}
                   >
-                    เลือกแล้ว {organisms.length}/{MAX_ORGANISMS}
+                    เลือกแล้ว {chosenCount}/{MAX_ORGANISMS}
                   </span>
                 </div>
                 <input
@@ -416,7 +478,39 @@ export function InfectionDiagnosisForm({
                       );
                     })
                   )}
+
+                  {/* อยู่นอกผลการกรอง เพื่อให้เลือกได้เสมอแม้กำลังค้นหาอยู่ */}
+                  <label
+                    className="flex items-center gap-3 rounded-lg px-3 py-2.5"
+                    style={{
+                      background: organismOther !== null ? 'var(--surface-2)' : 'transparent',
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={organismOther !== null}
+                      onChange={toggleOrganismOther}
+                      className="h-5 w-5 shrink-0"
+                    />
+                    <span className="text-[14px]">อื่นๆ (ระบุเอง)</span>
+                  </label>
                 </div>
+
+                {organismOther !== null && (
+                  <input
+                    aria-label="ระบุชื่อเชื้ออื่นๆ"
+                    value={organismOther}
+                    onChange={(e) => {
+                      setOrganismOther(e.target.value.slice(0, ORGANISM_NAME_MAX));
+                      setError(null);
+                    }}
+                    placeholder="พิมพ์ชื่อเชื้อที่พบ"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    className="mt-2 w-full rounded-lg border px-3.5 text-[16px]"
+                    style={inputStyle}
+                  />
+                )}
               </div>
             )}
 
@@ -475,15 +569,7 @@ export function InfectionDiagnosisForm({
                               onChange={() => toggleSymptom(def.code)}
                               className="mt-0.5 h-5 w-5 shrink-0"
                             />
-                            <span className="text-[14px]">
-                              {def.label}
-                              {def.infantOnly && (
-                                <span style={{ color: 'var(--muted)' }}>
-                                  {' '}
-                                  (ผู้ป่วยอายุ &lt; 1 ปี)
-                                </span>
-                              )}
-                            </span>
+                            <span className="text-[14px]">{def.label}</span>
                           </label>
 
                           {entry && (

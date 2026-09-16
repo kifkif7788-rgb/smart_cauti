@@ -133,7 +133,7 @@ export type StudyModeLogRow = {
 }
 
 export type CatheterAtDoeDb = 'GT_2_DAYS' | 'LE_2_DAYS' | 'NONE';
-export type UrineCultureResultDb = 'NO_GROWTH' | 'SIGNIFICANT';
+export type UrineCultureResultDb = 'NO_GROWTH' | 'SIGNIFICANT' | 'NON_BACTERIAL';
 
 export type InfectionDiagnosisRow = {
   diagnosis_id: string;
@@ -145,7 +145,10 @@ export type InfectionDiagnosisRow = {
   origin: 'HAI' | 'CI';
   catheter_at_doe: CatheterAtDoeDb;
   uc_result: UrineCultureResultDb;
+  uc_result_date: string | null;
   organisms: string[];
+  organism_other: string | null;
+  non_bacterial_organism: string | null;
   diagnosed_by: string;
   created_at: string;
   updated_at: string;
@@ -159,11 +162,7 @@ export type InfectionSymptomCodeDb =
   | 'FREQUENCY'
   | 'URGENCY'
   | 'SUPRAPUBIC_TENDERNESS'
-  | 'CVA_TENDERNESS'
-  | 'APNEA'
-  | 'BRADYCARDIA'
-  | 'LETHARGY'
-  | 'VOMITING';
+  | 'CVA_TENDERNESS';
 
 export type InfectionSymptomRow = {
   symptom_id: string;

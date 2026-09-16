@@ -18,6 +18,7 @@ export type CatheterAtDoe = keyof typeof CATHETER_AT_DOE;
 export const UC_RESULT = {
   NO_GROWTH: 'ผล U/C ไม่พบเชื้อแบคทีเรีย',
   SIGNIFICANT: 'ผล U/C พบเชื้อแบคทีเรียไม่เกิน 2 ชนิด และมีจำนวน colony ≥ 10⁵ CFU/ml',
+  NON_BACTERIAL: 'ผล U/C พบเชื้อที่ไม่ใช่แบคทีเรีย',
 } as const;
 
 export type UcResult = keyof typeof UC_RESULT;
@@ -52,9 +53,18 @@ export const ORGANISMS = [
   'Staphylococcus haemolyticus',
 ] as const;
 
-/** ข้อ 10.2.3 กำหนดว่าพบเชื้อได้ไม่เกิน 2 ชนิด */
+/** ข้อ 10.2.3 กำหนดว่าพบเชื้อได้ไม่เกิน 2 ชนิด — เชื้อที่ระบุเองนับรวมในจำนวนนี้ด้วย */
 export const MAX_ORGANISMS = 2;
 
+/** ความยาวสูงสุดของชื่อเชื้อที่ผู้ใช้พิมพ์เอง */
+export const ORGANISM_NAME_MAX = 120;
+
+/**
+ * HAI เมื่อ DOE ห่างจากวัน Admit ตั้งแต่ 3 วันขึ้นไป มิฉะนั้นเป็น CI
+ *
+ * กฎนี้คำนวณที่คอลัมน์ generated ของ infection_diagnosis ฝั่งฐานข้อมูลเท่านั้น
+ * ไม่ทำซ้ำในฝั่ง JS เพื่อไม่ให้สองที่คำนวณไม่ตรงกัน
+ */
 export type InfectionOrigin = 'HAI' | 'CI';
 
 export const ORIGIN_LABEL: Record<InfectionOrigin, string> = {
@@ -67,22 +77,6 @@ export function daysBetween(fromDate: string, toDate: string): number {
   const from = Date.parse(`${fromDate}T00:00:00Z`);
   const to = Date.parse(`${toDate}T00:00:00Z`);
   return Math.round((to - from) / 86_400_000);
-}
-
-/**
- * สรุปว่าติดเชื้อในโรงพยาบาลหรือในชุมชน
- *
- * HAI เมื่อ DOE ห่างจากวัน Admit ตั้งแต่ 3 วันขึ้นไป มิฉะนั้นเป็น CI
- * คืน null เมื่อวันที่ยังกรอกไม่ครบหรือ DOE มาก่อนวัน Admit
- */
-export function classifyOrigin(
-  admitDate: string,
-  doeDate: string,
-): InfectionOrigin | null {
-  if (!isDateString(admitDate) || !isDateString(doeDate)) return null;
-  const days = daysBetween(admitDate, doeDate);
-  if (days < 0) return null;
-  return days >= 3 ? 'HAI' : 'CI';
 }
 
 export function isDateString(value: unknown): value is string {
@@ -116,17 +110,11 @@ export type SymptomCode =
   | 'FREQUENCY'
   | 'URGENCY'
   | 'SUPRAPUBIC_TENDERNESS'
-  | 'CVA_TENDERNESS'
-  | 'APNEA'
-  | 'BRADYCARDIA'
-  | 'LETHARGY'
-  | 'VOMITING';
+  | 'CVA_TENDERNESS';
 
 export interface SymptomDef {
   code: SymptomCode;
   label: string;
-  /** เกณฑ์เฉพาะผู้ป่วยอายุต่ำกว่า 1 ปี */
-  infantOnly?: boolean;
   /**
    * ปัสสาวะแสบขัด ปัสสาวะบ่อย และกดเจ็บบริเวณหัวหน่าว ใช้ได้เฉพาะผู้ป่วยที่ถอดสายสวนแล้ว
    * เพราะผู้ที่ยังคาสายอยู่อาจมีอาการเหล่านี้โดยไม่ได้ติดเชื้อ
@@ -151,10 +139,6 @@ export const SYMPTOMS: readonly SymptomDef[] = [
     code: 'CVA_TENDERNESS',
     label: 'ปวดหลังหรือกดเจ็บบริเวณ Costovertebral angle โดยไม่มีสาเหตุอื่น',
   },
-  { code: 'APNEA', label: 'มีภาวะหยุดหายใจชั่วขณะ', infantOnly: true },
-  { code: 'BRADYCARDIA', label: 'หัวใจเต้นช้าผิดปกติ', infantOnly: true },
-  { code: 'LETHARGY', label: 'ซึมไม่มีสาเหตุอื่น', infantOnly: true },
-  { code: 'VOMITING', label: 'อาเจียนไม่มีสาเหตุอื่น', infantOnly: true },
 ];
 
 export const SYMPTOM_BY_CODE = new Map(SYMPTOMS.map((s) => [s.code, s]));
@@ -209,6 +193,12 @@ export interface DiagnosisInput {
   catheterAtDoe: CatheterAtDoe;
   ucResult: UcResult;
   organisms: string[];
+  /** ชื่อเชื้อที่ผู้ใช้พิมพ์เองเมื่อเลือก "อื่นๆ" — นับรวมใน MAX_ORGANISMS */
+  organismOther: string | null;
+  /** ชื่อเชื้อเมื่อผลเพาะเชื้อไม่ใช่แบคทีเรีย */
+  nonBacterialOrganism: string | null;
+  /** วันที่ส่งผล U/C — ไม่บังคับ เพราะบางครั้งยังไม่ทราบตอนกรอก */
+  ucResultDate: string | null;
   symptoms: SymptomEntry[];
 }
 
@@ -236,16 +226,45 @@ export function validateDiagnosis(
     if (symptomProblem) return symptomProblem;
   }
 
-  if (input.ucResult === 'NO_GROWTH') {
-    return input.organisms.length > 0
-      ? 'ผล U/C ไม่พบเชื้อ จึงเลือกชื่อเชื้อไม่ได้'
-      : null;
+  if (input.ucResultDate !== null && !isDateString(input.ucResultDate)) {
+    return 'วันที่ส่งผล U/C ไม่ถูกต้อง';
   }
 
-  if (input.organisms.length === 0) return 'กรุณาเลือกเชื้อที่พบอย่างน้อย 1 ชนิด';
-  if (input.organisms.length > MAX_ORGANISMS) {
-    return `เลือกเชื้อได้ไม่เกิน ${MAX_ORGANISMS} ชนิด`;
+  if (input.ucResult === 'NO_GROWTH') {
+    if (input.organisms.length > 0 || input.organismOther !== null) {
+      return 'ผล U/C ไม่พบเชื้อ จึงระบุชื่อเชื้อไม่ได้';
+    }
+    if (input.nonBacterialOrganism !== null) {
+      return 'ผล U/C ไม่พบเชื้อ จึงระบุเชื้อที่ไม่ใช่แบคทีเรียไม่ได้';
+    }
+    return null;
   }
+
+  if (input.ucResult === 'NON_BACTERIAL') {
+    if (input.organisms.length > 0 || input.organismOther !== null) {
+      return 'ผลที่ไม่ใช่แบคทีเรีย ให้ระบุชื่อเชื้อในช่องของตัวเองแทนการเลือกจากรายการ';
+    }
+    if (!input.nonBacterialOrganism) return 'กรุณาระบุชื่อเชื้อที่ไม่ใช่แบคทีเรีย';
+    if (input.nonBacterialOrganism.length > ORGANISM_NAME_MAX) {
+      return `ชื่อเชื้อยาวเกิน ${ORGANISM_NAME_MAX} อักขระ`;
+    }
+    return null;
+  }
+
+  // เหลือกรณี SIGNIFICANT — พบเชื้อแบคทีเรีย
+  if (input.nonBacterialOrganism !== null) {
+    return 'ผลที่พบเชื้อแบคทีเรีย ระบุเชื้อที่ไม่ใช่แบคทีเรียไม่ได้';
+  }
+  if (input.organismOther !== null) {
+    if (input.organismOther.length === 0) return 'กรุณาระบุชื่อเชื้อในช่อง "อื่นๆ"';
+    if (input.organismOther.length > ORGANISM_NAME_MAX) {
+      return `ชื่อเชื้อยาวเกิน ${ORGANISM_NAME_MAX} อักขระ`;
+    }
+  }
+
+  const total = input.organisms.length + (input.organismOther !== null ? 1 : 0);
+  if (total === 0) return 'กรุณาเลือกเชื้อที่พบอย่างน้อย 1 ชนิด';
+  if (total > MAX_ORGANISMS) return `เลือกเชื้อได้ไม่เกิน ${MAX_ORGANISMS} ชนิด`;
   if (new Set(input.organisms).size !== input.organisms.length) {
     return 'เลือกเชื้อซ้ำกัน';
   }

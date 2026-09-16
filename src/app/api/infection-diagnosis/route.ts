@@ -42,7 +42,10 @@ export async function POST(request: NextRequest) {
     admitDx,
     catheterAtDoe,
     ucResult,
+    ucResultDate,
     organisms,
+    organismOther,
+    nonBacterialOrganism,
     symptoms,
   } = body as Record<string, unknown>;
 
@@ -56,7 +59,11 @@ export async function POST(request: NextRequest) {
     admitDx: typeof admitDx === 'string' ? admitDx.trim() : null,
     catheterAtDoe: catheterAtDoe as CatheterAtDoe,
     ucResult: ucResult as UcResult,
+    ucResultDate: typeof ucResultDate === 'string' && ucResultDate ? ucResultDate : null,
     organisms: Array.isArray(organisms) ? (organisms as string[]) : [],
+    organismOther: typeof organismOther === 'string' ? organismOther.trim() : null,
+    nonBacterialOrganism:
+      typeof nonBacterialOrganism === 'string' ? nonBacterialOrganism.trim() : null,
     symptoms: Array.isArray(symptoms) ? (symptoms as SymptomEntry[]) : [],
   };
 
@@ -98,7 +105,10 @@ export async function POST(request: NextRequest) {
         admit_dx: input.admitDx || null,
         catheter_at_doe: input.catheterAtDoe,
         uc_result: input.ucResult,
+        uc_result_date: input.ucResultDate,
         organisms: input.organisms,
+        organism_other: input.organismOther,
+        non_bacterial_organism: input.nonBacterialOrganism,
         diagnosed_by: session.userId,
         updated_at: new Date().toISOString(),
       },

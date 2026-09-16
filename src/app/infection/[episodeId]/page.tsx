@@ -28,7 +28,9 @@ export default async function InfectionDiagnosisPage(
 
   const { data: existing } = await db()
     .from('infection_diagnosis')
-    .select('diagnosis_id, admit_date, doe_date, admit_dx, catheter_at_doe, uc_result, organisms')
+    .select(
+      'diagnosis_id, admit_date, doe_date, admit_dx, catheter_at_doe, uc_result, uc_result_date, organisms, organism_other, non_bacterial_organism',
+    )
     .eq('episode_id', episodeId)
     .maybeSingle();
 
@@ -54,7 +56,10 @@ export default async function InfectionDiagnosisPage(
         admitDx: existing.admit_dx,
         catheterAtDoe: existing.catheter_at_doe,
         ucResult: existing.uc_result,
+        ucResultDate: existing.uc_result_date,
         organisms: existing.organisms ?? [],
+        organismOther: existing.organism_other,
+        nonBacterialOrganism: existing.non_bacterial_organism,
         symptoms: (symptomRows ?? []).map((s) => ({
           code: s.code,
           onsetDate: s.onset_date,
