@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   currentShift,
   currentShiftWindow,
+  todayShiftWindows,
   foleyDay,
   bangkokDateString,
   formatThaiDate,
@@ -82,5 +83,38 @@ describe('formatThaiDate', () => {
   it('แปลง ค.ศ. เป็น พ.ศ. พร้อมชื่อเดือนย่อ', () => {
     expect(formatThaiDate('2025-08-10')).toBe('10 ส.ค. 2568');
     expect(formatThaiDate('2026-01-01')).toBe('1 ม.ค. 2569');
+  });
+});
+
+describe('todayShiftWindows', () => {
+  it('คืนสามเวรเรียงตามเวลา เริ่มที่เวรเช้า 07:00', () => {
+    const w = todayShiftWindows(bkk('2026-09-15T09:30:00'));
+    expect(w.map((x) => x.shift)).toEqual(['MORNING', 'AFTERNOON', 'NIGHT']);
+    expect(w[0].start.toISOString()).toBe(bkk('2026-09-15T07:00:00').toISOString());
+    expect(w[2].end.toISOString()).toBe(bkk('2026-09-16T07:00:00').toISOString());
+  });
+
+  it('เวรต่อกันสนิทไม่มีช่องว่าง', () => {
+    const w = todayShiftWindows(bkk('2026-09-15T20:00:00'));
+    expect(w[0].end.toISOString()).toBe(w[1].start.toISOString());
+    expect(w[1].end.toISOString()).toBe(w[2].start.toISOString());
+  });
+
+  it('ตีสองยังอยู่ในวันทำงานที่เริ่มเมื่อวาน', () => {
+    // พยาบาลเวรดึกต้องเห็นวันเดียวกับตอนขึ้นเวร ไม่ใช่วันใหม่ตามปฏิทิน
+    const w = todayShiftWindows(bkk('2026-09-16T02:00:00'));
+    expect(w[0].start.toISOString()).toBe(bkk('2026-09-15T07:00:00').toISOString());
+    expect(w[2].start.toISOString()).toBe(bkk('2026-09-15T23:00:00').toISOString());
+  });
+
+  it('เวรปัจจุบันตรงกับ currentShiftWindow เสมอ', () => {
+    for (const iso of ['2026-09-15T08:00:00', '2026-09-15T18:00:00', '2026-09-16T02:00:00']) {
+      const now = bkk(iso);
+      const cur = currentShiftWindow(now);
+      const match = todayShiftWindows(now).find(
+        (w) => w.start <= now && now < w.end,
+      );
+      expect(match?.start.toISOString()).toBe(cur.start.toISOString());
+    }
   });
 });

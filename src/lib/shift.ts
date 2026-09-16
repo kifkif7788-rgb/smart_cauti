@@ -81,6 +81,28 @@ export function currentShiftWindow(at: Date = new Date()): { start: Date; end: D
 }
 
 /**
+ * ทั้งสามเวรของ "วันทำงานวันนี้" เรียงตามลำดับเวลา
+ *
+ * วันทำงานเริ่มที่เวรเช้า 07:00 และจบตอน 07:00 ของวันถัดไป
+ * พยาบาลเวรดึกที่ดูตอนตีสองจึงยังเห็นวันเดียวกับที่ขึ้นเวรมา
+ */
+export function todayShiftWindows(
+  at: Date = new Date(),
+): { shift: Shift; start: Date; end: Date }[] {
+  const { y, m, d, hour } = bangkokParts(at);
+  const midnightUtc = Date.UTC(y, m - 1, d) - BANGKOK_OFFSET_MS;
+  const HOUR = 60 * 60 * 1000;
+  // ก่อน 07:00 ยังอยู่ในวันทำงานที่เริ่มเมื่อวาน
+  const dayStart = hour < 7 ? midnightUtc - 24 * HOUR : midnightUtc;
+
+  return [
+    { shift: 'MORNING', start: new Date(dayStart + 7 * HOUR), end: new Date(dayStart + 15 * HOUR) },
+    { shift: 'AFTERNOON', start: new Date(dayStart + 15 * HOUR), end: new Date(dayStart + 23 * HOUR) },
+    { shift: 'NIGHT', start: new Date(dayStart + 23 * HOUR), end: new Date(dayStart + 31 * HOUR) },
+  ];
+}
+
+/**
  * Foley Day — วันที่เท่าไรของการคาสาย นับวันที่ใส่เป็นวันที่ 1
  * รับ insertDate เป็นสตริง YYYY-MM-DD จากคอลัมน์ date ของ Postgres
  */
