@@ -4,6 +4,7 @@ import {
   filterOrganisms,
   validateDiagnosis,
   validateSymptoms,
+  notInfectedReason,
   ORGANISMS,
   SYMPTOMS,
   type DiagnosisInput,
@@ -224,5 +225,23 @@ describe('validateDiagnosis', () => {
     ];
     expect(validateDiagnosis({ ...valid, symptoms }, false)).toMatch(/ถอดสายสวน/);
     expect(validateDiagnosis({ ...valid, symptoms }, true)).toBeNull();
+  });
+});
+
+describe('notInfectedReason', () => {
+  it('พบเชื้อแบคทีเรียและมีอาการ = เข้าเกณฑ์ติดเชื้อ', () => {
+    expect(notInfectedReason('SIGNIFICANT', true)).toBeNull();
+  });
+
+  it('พบเชื้อแต่ไม่มีอาการ ยังไม่เข้าเกณฑ์', () => {
+    expect(notInfectedReason('SIGNIFICANT', false)).toMatch(/ยังไม่มีอาการ/);
+  });
+
+  it('ไม่พบเชื้อ ไม่ติดเชื้อแม้มีอาการ', () => {
+    expect(notInfectedReason('NO_GROWTH', true)).toMatch(/ไม่พบเชื้อ/);
+  });
+
+  it('เชื้อที่ไม่ใช่แบคทีเรียไม่เข้าเกณฑ์ CAUTI', () => {
+    expect(notInfectedReason('NON_BACTERIAL', true)).toMatch(/ไม่ใช่แบคทีเรีย/);
   });
 });

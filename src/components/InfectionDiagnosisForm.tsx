@@ -3,8 +3,10 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
+  OUTCOME_LABEL,
   validateDiagnosis,
   validateSymptoms,
+  type DiagnosisOutcome,
   type CatheterAtDoe,
   type SymptomEntry,
   type UcResult,
@@ -70,7 +72,7 @@ export function InfectionDiagnosisForm({
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
+  const [result, setResult] = useState<{ outcome: DiagnosisOutcome; reason: string | null } | null>(null);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -107,10 +109,14 @@ export function InfectionDiagnosisForm({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ episodeId, ...input }),
       });
-      const data = (await response.json().catch(() => ({}))) as { error?: string };
+      const data = (await response.json().catch(() => ({}))) as {
+        error?: string;
+        outcome?: DiagnosisOutcome;
+        reason?: string | null;
+      };
       if (!response.ok) throw new Error(data.error ?? 'บันทึกไม่สำเร็จ');
 
-      setSaved(true);
+      if (data.outcome) setResult({ outcome: data.outcome, reason: data.reason ?? null });
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'บันทึกไม่สำเร็จ');
@@ -197,19 +203,47 @@ export function InfectionDiagnosisForm({
         </div>
       )}
 
-      {saved && !error && (
-        <div
-          role="status"
-          className="mt-4 rounded-lg px-3 py-2.5 text-[13px] font-semibold"
-          style={{ background: 'var(--pass-bg)', color: 'var(--pass)' }}
-        >
-          บันทึกแบบวินิจฉัยเรียบร้อยแล้ว
-        </div>
-      )}
 
       <button type="submit" disabled={busy} className="btn-primary mt-4 w-full text-[16px]">
         {busy ? 'กำลังบันทึก…' : existing ? 'บันทึกการแก้ไข' : 'บันทึกแบบวินิจฉัย'}
       </button>
+
+      {result && (
+        <OutcomeDialog result={result} onClose={() => setResult(null)} />
+      )}
     </form>
+  );
+}
+
+/** สรุปผลที่เด้งขึ้นทันทีหลังบันทึก เพื่อให้ผู้กรอกเห็นข้อสรุปโดยไม่ต้องเลื่อนหา */
+function OutcomeDialog({
+  result,
+  onClose,
+}: {
+  result: { outcome: DiagnosisOutcome; reason: string | null };
+  onClose: () => void;
+}) {
+  const infected = result.outcome !== 'NO_INFECTION';
+  const tone = !infected ? 'pass' : result.outcome === 'HAI' ? 'review' : 'correct';
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="ผลการวินิจฉัย"
+      className="outcome-backdrop"
+      onClick={onClose}
+    >
+      <div className="outcome-card" onClick={(e) => e.stopPropagation()}>
+        <div className="outcome-eyebrow">บันทึกแบบวินิจฉัยเรียบร้อยแล้ว</div>
+        <div className="outcome-title" style={{ color: `var(--${tone})` }}>
+          {OUTCOME_LABEL[result.outcome]}
+        </div>
+        {result.reason && <p className="outcome-reason">{result.reason}</p>}
+        <button type="button" onClick={onClose} className="btn-primary mt-4 w-full">
+          ปิด
+        </button>
+      </div>
+    </div>
   );
 }

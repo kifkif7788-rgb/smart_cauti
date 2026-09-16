@@ -67,6 +67,32 @@ export const ORGANISM_NAME_MAX = 120;
  */
 export type InfectionOrigin = 'HAI' | 'CI';
 
+/** ผลสรุปที่แสดงให้ผู้กรอกเห็นทันทีหลังบันทึก */
+export type DiagnosisOutcome = InfectionOrigin | 'NO_INFECTION';
+
+export const OUTCOME_LABEL: Record<DiagnosisOutcome, string> = {
+  HAI: 'ผู้ป่วยมีการติดเชื้อในโรงพยาบาล (HAI)',
+  CI: 'ผู้ป่วยมีการติดเชื้อในชุมชน (CI)',
+  NO_INFECTION: 'ไม่ติดเชื้อ',
+};
+
+/**
+ * เหตุผลที่ยังไม่เข้าเกณฑ์ติดเชื้อ — คืน null เมื่อเข้าเกณฑ์แล้ว
+ *
+ * เกณฑ์ต้องครบทั้งสองอย่าง คือพบเชื้อแบคทีเรียตามปริมาณที่กำหนด
+ * และมีอาการแสดงอย่างน้อยหนึ่งข้อ ผลเพาะเชื้ออย่างเดียวอาจเป็นเพียง
+ * การตั้งรกรากของเชื้อโดยผู้ป่วยไม่ได้ติดเชื้อจริง
+ */
+export function notInfectedReason(
+  ucResult: UcResult,
+  hasSymptoms: boolean,
+): string | null {
+  if (ucResult === 'NO_GROWTH') return 'ผล U/C ไม่พบเชื้อ';
+  if (ucResult === 'NON_BACTERIAL') return 'เชื้อที่พบไม่ใช่แบคทีเรีย จึงไม่เข้าเกณฑ์';
+  if (!hasSymptoms) return 'พบเชื้อแต่ยังไม่มีอาการแสดง';
+  return null;
+}
+
 export const ORIGIN_LABEL: Record<InfectionOrigin, string> = {
   HAI: 'ผู้ป่วยมีการติดเชื้อในโรงพยาบาล (HAI)',
   CI: 'ผู้ป่วยมีการติดเชื้อในชุมชน (CI)',

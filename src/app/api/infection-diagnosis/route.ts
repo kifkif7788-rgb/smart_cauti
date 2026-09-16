@@ -3,9 +3,12 @@ import { db, writeAudit } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 import { canDiagnoseInfection } from '@/lib/auth-roles';
 import {
+  notInfectedReason,
   validateDiagnosis,
   type CatheterAtDoe,
   type DiagnosisInput,
+  type DiagnosisOutcome,
+  type InfectionOrigin,
   type SymptomEntry,
   type UcResult,
 } from '@/lib/infection';
@@ -146,13 +149,39 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // อาการมาได้สองทาง — ที่ IC กรอกในแบบนี้ และที่พยาบาลบันทึกตอนประเมินรายวัน
+  // ต้องนับทั้งสองทาง ไม่งั้นรายที่พยาบาลพบไข้ไว้แล้วจะถูกสรุปว่าไม่ติดเชื้อ
+  let hasSymptoms = input.symptoms.length > 0;
+  if (!hasSymptoms) {
+    const { data: assessments } = await db()
+      .from('assessment')
+      .select('assessment_id')
+      .eq('episode_id', episodeId);
+
+    if ((assessments ?? []).length > 0) {
+      const { count: symptomCount } = await db()
+        .from('infection_symptom')
+        .select('symptom_id', { count: 'exact', head: true })
+        .in(
+          'assessment_id',
+          (assessments ?? []).map((a) => a.assessment_id),
+        );
+      hasSymptoms = (symptomCount ?? 0) > 0;
+    }
+  }
+
+  const reason = notInfectedReason(input.ucResult, hasSymptoms);
+  const outcome: DiagnosisOutcome = reason
+    ? 'NO_INFECTION'
+    : (saved.origin as InfectionOrigin);
+
   await writeAudit({
     actorId: session.userId,
     action: 'INFECTION_DIAGNOSIS_SAVE',
     entity: 'infection_diagnosis',
     entityId: saved.diagnosis_id,
-    detail: { studyCode: episode.study_code, origin: saved.origin },
+    detail: { studyCode: episode.study_code, origin: saved.origin, outcome },
   });
 
-  return Response.json({ diagnosisId: saved.diagnosis_id, origin: saved.origin });
+  return Response.json({ diagnosisId: saved.diagnosis_id, outcome, reason });
 }
