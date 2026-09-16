@@ -5,7 +5,8 @@
  * และมักสวมถุงมือ การพิมพ์รหัสผ่านยาวทำให้เวลาต่อการประเมินเกิน 30 วินาที
  *
  * PIN เก็บเป็น scrypt hash เท่านั้น ไม่เก็บ PIN ดิบที่ใดเลย
- * Session เป็น JWT ใน httpOnly cookie อายุ 12 ชั่วโมง (หนึ่งเวร)
+ * Session เป็น JWT ใน httpOnly cookie อายุ 8 ชั่วโมง เท่ากับหนึ่งเวรพอดี
+ * เพื่อไม่ให้พยาบาลเวรถัดไปใช้ session ของเวรก่อนต่อบนเครื่องที่ใช้ร่วมกัน
  */
 
 import { scrypt, randomBytes, timingSafeEqual } from 'node:crypto';
@@ -20,7 +21,7 @@ const scryptAsync = promisify(scrypt) as (
 ) => Promise<Buffer>;
 
 export const SESSION_COOKIE = 'scg_session';
-const SESSION_HOURS = 12;
+const SESSION_HOURS = 8;
 const KEY_LENGTH = 32;
 
 export type { UserRole } from './auth-roles';

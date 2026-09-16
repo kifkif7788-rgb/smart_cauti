@@ -169,7 +169,9 @@ export type InfectionSymptomCodeDb =
 
 export type InfectionSymptomRow = {
   symptom_id: string;
-  diagnosis_id: string;
+  /** อาการมีเจ้าของได้ทางเดียว — บันทึกตอนประเมินรายวัน หรือ IC บันทึกในแบบวินิจฉัย */
+  diagnosis_id: string | null;
+  assessment_id: string | null;
   code: InfectionSymptomCodeDb;
   onset_date: string;
   end_date: string | null;

@@ -8,6 +8,7 @@ import { maskHn } from '@/lib/hn';
 import { foleyDay } from '@/lib/shift';
 import { AppHeader } from '@/components/AppHeader';
 import { ORIGIN_LABEL, type InfectionOrigin } from '@/lib/infection';
+import { awaitingDiagnosisEpisodes } from '@/lib/awaiting-diagnosis';
 
 export default async function InfectionListPage() {
   const session = await getSession();
@@ -39,6 +40,7 @@ export default async function InfectionListPage() {
   const byEpisode = new Map(
     (diagnoses ?? []).map((d) => [d.episode_id, d.origin as InfectionOrigin]),
   );
+  const awaiting = await awaitingDiagnosisEpisodes(list.map((e) => e.episode_id));
 
   return (
     <>
@@ -82,6 +84,14 @@ export default async function InfectionListPage() {
                           : 'ปิดรายการแล้ว'}
                       </div>
                     </div>
+                    {!origin && awaiting.has(episode.episode_id) && (
+                      <span
+                        className="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold"
+                        style={{ background: 'var(--review-bg)', color: 'var(--review)' }}
+                      >
+                        รอวินิจฉัย
+                      </span>
+                    )}
                     {origin && (
                       <span
                         className="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold"

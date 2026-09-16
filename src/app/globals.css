@@ -381,3 +381,6 @@ body > main, body > .assessment-page, body > header + main { max-width:540px; }
 .pin-keypad button:active:not(:disabled) { background:var(--primary); color:white; }
 .pin-keypad button:disabled { opacity:.4; cursor:default; }
 .pin-keypad button.pin-keypad-action { font-size:17px; color:var(--muted); background:transparent; box-shadow:none; }
+
+/* เลือกคุณวุฒิผู้ประเมินที่หน้าแรก — วางต่อจากโลโก้ในกล่องสแกน */
+.nurse-switch { margin: 14px 2px 4px; text-align: left; }

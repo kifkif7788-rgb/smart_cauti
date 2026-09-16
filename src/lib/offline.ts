@@ -11,12 +11,29 @@
 
 import { openDB, type IDBPDatabase } from 'idb';
 import type { Check5Key, NurseLevel } from './check5';
+import type { CatheterAtDoe, SymptomEntry, UcResult } from './infection';
+
+export interface DiagnosisPayload {
+  admitDate: string;
+  doeDate: string;
+  admitDx: string;
+  catheterAtDoe: CatheterAtDoe;
+  ucResult: UcResult;
+  ucResultDate: string | null;
+  organisms: string[];
+  organismOther: string | null;
+  nonBacterialOrganism: string | null;
+}
 
 export interface QueuedAssessment {
   clientUuid: string;
   episodeId: string;
   answers: Record<Check5Key, boolean>;
   nurseLevel: NurseLevel;
+  /** อาการแสดงที่พบตอนประเมิน — ว่างได้เมื่อผู้ป่วยไม่มีอาการ */
+  symptoms: SymptomEntry[];
+  /** กรอกต่อเมื่อมีอาการเท่านั้น */
+  diagnosis: DiagnosisPayload | null;
   notes?: string;
   queuedAt: string;
 }

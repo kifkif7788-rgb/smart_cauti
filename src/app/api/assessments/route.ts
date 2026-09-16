@@ -4,6 +4,8 @@ import { getSession } from '@/lib/auth';
 import { getActiveStudy, shouldRevealFeedback } from '@/lib/study';
 import { evaluateCheck5, isNurseLevel, parseAnswers } from '@/lib/check5';
 import { currentShift, foleyDay } from '@/lib/shift';
+import { validateDiagnosis, validateSymptoms, type SymptomEntry } from '@/lib/infection';
+import type { DiagnosisPayload } from '@/lib/offline';
 import { buildAssessmentResponseBody } from './response';
 import type { StudyMode } from '@/types/database';
 
@@ -40,6 +42,29 @@ export async function POST(request: NextRequest) {
   const nurseLevel = body.nurseLevel;
   if (nurseLevel != null && !isNurseLevel(nurseLevel)) {
     return Response.json({ error: 'ระดับผู้ประเมินต้องเป็น RN หรือ PN' }, { status: 400 });
+  }
+
+  // อาการและการวินิจฉัยมาจากหน้าประเมินรายวันเมื่อพยาบาลพบอาการแสดง
+  const symptoms = Array.isArray(body.symptoms) ? (body.symptoms as SymptomEntry[]) : [];
+  const diagnosis = (body.diagnosis ?? null) as DiagnosisPayload | null;
+
+  if (symptoms.length > 0) {
+    const symptomProblem = validateSymptoms(symptoms, false);
+    if (symptomProblem) return Response.json({ error: symptomProblem }, { status: 400 });
+  }
+
+  // ผู้ช่วยพยาบาลบันทึกได้เฉพาะอาการ รายการจะค้างเป็น "รอวินิจฉัย" ให้ RN หรือ IC มาสรุป
+  if (diagnosis) {
+    if (nurseLevel !== 'RN') {
+      return Response.json(
+        { error: 'การวินิจฉัยต้องบันทึกโดยพยาบาลวิชาชีพ' },
+        { status: 400 },
+      );
+    }
+    const diagnosisProblem = validateDiagnosis({ ...diagnosis, symptoms }, false);
+    if (diagnosisProblem) {
+      return Response.json({ error: diagnosisProblem }, { status: 400 });
+    }
   }
 
   const answers = parseAnswers(body.answers);
@@ -124,6 +149,50 @@ export async function POST(request: NextRequest) {
   if (error || !inserted) {
     console.error('[assessments] บันทึกไม่สำเร็จ', error);
     return Response.json({ error: 'บันทึกไม่สำเร็จ กรุณาลองใหม่' }, { status: 500 });
+  }
+
+  // อาการแสดงผูกกับการประเมินครั้งนี้ จึงบันทึกหลังได้ assessment_id
+  // ความล้มเหลวตรงนี้ไม่ย้อนการประเมินที่บันทึกไปแล้ว เพราะผลประเมินสำคัญกว่า
+  // และพยาบาลกรอกซ้ำได้จากแบบวินิจฉัยของ IC
+  if (symptoms.length > 0) {
+    const { error: symptomError } = await db()
+      .from('infection_symptom')
+      .insert(
+        symptoms.map((s) => ({
+          assessment_id: inserted.assessment_id,
+          code: s.code,
+          onset_date: s.onsetDate,
+          end_date: s.endDate,
+        })),
+      );
+    if (symptomError) {
+      console.error('[assessments] บันทึกอาการไม่สำเร็จ', symptomError);
+    }
+  }
+
+  if (diagnosis) {
+    const { error: diagnosisError } = await db()
+      .from('infection_diagnosis')
+      .upsert(
+        {
+          episode_id: episodeId,
+          admit_date: diagnosis.admitDate,
+          doe_date: diagnosis.doeDate,
+          admit_dx: diagnosis.admitDx || null,
+          catheter_at_doe: diagnosis.catheterAtDoe,
+          uc_result: diagnosis.ucResult,
+          uc_result_date: diagnosis.ucResultDate,
+          organisms: diagnosis.organisms,
+          organism_other: diagnosis.organismOther,
+          non_bacterial_organism: diagnosis.nonBacterialOrganism,
+          diagnosed_by: session.userId,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'episode_id' },
+      );
+    if (diagnosisError) {
+      console.error('[assessments] บันทึกการวินิจฉัยไม่สำเร็จ', diagnosisError);
+    }
   }
 
   await writeAudit({

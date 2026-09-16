@@ -1,21 +1,21 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  CATHETER_AT_DOE,
-  MAX_ORGANISMS,
-  ORGANISM_NAME_MAX,
-  SYMPTOMS,
-  UC_RESULT,
-  filterOrganisms,
   validateDiagnosis,
   validateSymptoms,
   type CatheterAtDoe,
-  type SymptomCode,
   type SymptomEntry,
   type UcResult,
 } from '@/lib/infection';
+import {
+  InfectionDetailsFields,
+  detailsToPayload,
+  EMPTY_DETAILS,
+  type DiagnosisDetails,
+} from '@/components/InfectionDetailsFields';
+import { SymptomPicker } from '@/components/SymptomPicker';
 
 export interface ExistingDiagnosis {
   admitDate: string;
@@ -34,9 +34,24 @@ interface Props {
   episodeId: string;
   insertDate: string;
   today: string;
-  /** ถอดสายสวนแล้วหรือยัง — ข้อ 3, 5, 7 ของ 10.2.4 ใช้ได้เฉพาะเมื่อถอดแล้ว */
+  /** ถอดสายสวนแล้วหรือยัง — อาการบางข้อใช้ได้เฉพาะเมื่อถอดแล้ว */
   catheterRemoved: boolean;
   existing: ExistingDiagnosis | null;
+}
+
+function toDetails(existing: ExistingDiagnosis | null): DiagnosisDetails {
+  if (!existing) return EMPTY_DETAILS;
+  return {
+    admitDate: existing.admitDate,
+    doeDate: existing.doeDate,
+    admitDx: existing.admitDx ?? '',
+    catheterAtDoe: existing.catheterAtDoe,
+    ucResult: existing.ucResult,
+    ucResultDate: existing.ucResultDate ?? '',
+    organisms: existing.organisms,
+    organismOther: existing.organismOther,
+    nonBacterial: existing.nonBacterialOrganism ?? '',
+  };
 }
 
 export function InfectionDiagnosisForm({
@@ -48,103 +63,14 @@ export function InfectionDiagnosisForm({
 }: Props) {
   const router = useRouter();
 
-  const [admitDate, setAdmitDate] = useState(existing?.admitDate ?? '');
-  const [doeDate, setDoeDate] = useState(existing?.doeDate ?? '');
-  const [admitDx, setAdmitDx] = useState(existing?.admitDx ?? '');
-
-  // ข้อย่อยของ 10.2 จะยังไม่แสดงจนกว่าจะระบุว่าเป็นการติดเชื้อทางเดินปัสสาวะ
+  const [details, setDetails] = useState<DiagnosisDetails>(() => toDetails(existing));
   const [isUti, setIsUti] = useState(existing !== null);
-  const [catheterAtDoe, setCatheterAtDoe] = useState<CatheterAtDoe | ''>(
-    existing?.catheterAtDoe ?? '',
-  );
-  const [ucResult, setUcResult] = useState<UcResult | ''>(existing?.ucResult ?? '');
-  const [ucResultDate, setUcResultDate] = useState(existing?.ucResultDate ?? '');
-  const [organisms, setOrganisms] = useState<string[]>(existing?.organisms ?? []);
-  const [organismQuery, setOrganismQuery] = useState('');
-  // null = ไม่ได้เลือก "อื่นๆ" / สตริงว่าง = เลือกแล้วแต่ยังไม่พิมพ์ชื่อ
-  const [organismOther, setOrganismOther] = useState<string | null>(
-    existing?.organismOther ?? null,
-  );
-  const [nonBacterial, setNonBacterial] = useState(existing?.nonBacterialOrganism ?? '');
-
-  // 10.2.4 — เก็บเป็น map เพื่อให้ติ๊ก/ถอดอาการแล้วยังจำวันที่ที่กรอกไว้
   const [hasSymptoms, setHasSymptoms] = useState((existing?.symptoms.length ?? 0) > 0);
-  const [symptoms, setSymptoms] = useState<Map<SymptomCode, SymptomEntry>>(
-    () => new Map((existing?.symptoms ?? []).map((s) => [s.code, s])),
-  );
+  const [symptoms, setSymptoms] = useState<SymptomEntry[]>(existing?.symptoms ?? []);
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
-
-  const visibleOrganisms = useMemo(
-    () => filterOrganisms(organismQuery),
-    [organismQuery],
-  );
-
-  // เชื้อที่ระบุเองนับรวมกับเชื้อที่เลือกจากรายการ ตามเกณฑ์ที่ให้พบได้ไม่เกิน 2 ชนิด
-  const chosenCount = organisms.length + (organismOther !== null ? 1 : 0);
-
-  function toggleOrganism(name: string) {
-    setError(null);
-    if (organisms.includes(name)) {
-      setOrganisms((current) => current.filter((o) => o !== name));
-      return;
-    }
-    if (chosenCount >= MAX_ORGANISMS) {
-      setError(`เลือกเชื้อได้ไม่เกิน ${MAX_ORGANISMS} ชนิด`);
-      return;
-    }
-    setOrganisms((current) => [...current, name]);
-  }
-
-  function toggleOrganismOther() {
-    setError(null);
-    if (organismOther !== null) {
-      setOrganismOther(null);
-      return;
-    }
-    if (chosenCount >= MAX_ORGANISMS) {
-      setError(`เลือกเชื้อได้ไม่เกิน ${MAX_ORGANISMS} ชนิด`);
-      return;
-    }
-    setOrganismOther('');
-  }
-
-  function toggleSymptom(code: SymptomCode) {
-    setError(null);
-    setSymptoms((current) => {
-      const next = new Map(current);
-      if (next.has(code)) next.delete(code);
-      else next.set(code, { code, onsetDate: doeDate || '', endDate: null });
-      return next;
-    });
-  }
-
-  function setSymptomDate(code: SymptomCode, field: 'onsetDate' | 'endDate', value: string) {
-    setError(null);
-    setSymptoms((current) => {
-      const entry = current.get(code);
-      if (!entry) return current;
-      const next = new Map(current);
-      next.set(code, {
-        ...entry,
-        [field]: field === 'endDate' && value === '' ? null : value,
-      });
-      return next;
-    });
-  }
-
-  function pickUcResult(value: UcResult) {
-    setError(null);
-    setUcResult(value);
-    // ล้างข้อมูลของผลแบบเดิม เพื่อไม่ให้ชื่อเชื้อค้างข้ามประเภทผล
-    if (value !== 'SIGNIFICANT') {
-      setOrganisms([]);
-      setOrganismOther(null);
-    }
-    if (value !== 'NON_BACTERIAL') setNonBacterial('');
-  }
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -155,9 +81,8 @@ export function InfectionDiagnosisForm({
       return;
     }
 
-    const chosen = [...symptoms.values()];
     if (hasSymptoms) {
-      const symptomProblem = validateSymptoms(chosen, catheterRemoved);
+      const symptomProblem = validateSymptoms(symptoms, catheterRemoved);
       if (symptomProblem) {
         setError(symptomProblem);
         return;
@@ -165,16 +90,8 @@ export function InfectionDiagnosisForm({
     }
 
     const input = {
-      admitDate,
-      doeDate,
-      admitDx: admitDx.trim(),
-      catheterAtDoe: catheterAtDoe as CatheterAtDoe,
-      ucResult: ucResult as UcResult,
-      ucResultDate: ucResultDate || null,
-      organisms,
-      organismOther: organismOther === null ? null : organismOther.trim(),
-      nonBacterialOrganism: ucResult === 'NON_BACTERIAL' ? nonBacterial.trim() : null,
-      symptoms: hasSymptoms ? chosen : [],
+      ...detailsToPayload(details),
+      symptoms: hasSymptoms ? symptoms : [],
     };
 
     const problem = validateDiagnosis(input, catheterRemoved);
@@ -202,70 +119,9 @@ export function InfectionDiagnosisForm({
     }
   }
 
-  const inputStyle = {
-    background: 'var(--surface-2)',
-    borderColor: 'var(--border)',
-    color: 'var(--text)',
-    minHeight: '50px',
-  };
-
   return (
     <form onSubmit={handleSubmit} className="mx-auto max-w-2xl px-4 pb-16 pt-4">
-      {/* ── ข้อ 7–9 ────────────────────────────────────────────────── */}
-      <section className="surface space-y-4 p-4">
-        <div>
-          <label htmlFor="admit-date" className="text-sm font-bold">
-            วันแรกของการนอนโรงพยาบาลในครั้งนี้ (Admit)
-          </label>
-          <input
-            id="admit-date"
-            type="date"
-            value={admitDate}
-            max={today}
-            onChange={(e) => setAdmitDate(e.target.value)}
-            required
-            className="mt-1.5 w-full rounded-lg border px-3.5 text-[16px]"
-            style={inputStyle}
-          />
-        </div>
-
-        <div>
-          <label htmlFor="doe-date" className="text-sm font-bold">
-            วันแรกที่มีอาการแสดงการติดเชื้อ (DOE)
-          </label>
-          <input
-            id="doe-date"
-            type="date"
-            value={doeDate}
-            min={admitDate || undefined}
-            max={today}
-            onChange={(e) => setDoeDate(e.target.value)}
-            required
-            className="mt-1.5 w-full rounded-lg border px-3.5 text-[16px]"
-            style={inputStyle}
-          />
-          <p className="mt-1.5 text-[12.5px]" style={{ color: 'var(--muted)' }}>
-            วันที่ใส่สายสวนของรายนี้คือ {insertDate}
-          </p>
-        </div>
-
-        <div>
-          <label htmlFor="admit-dx" className="text-sm font-bold">
-            DX. แรกรับ
-          </label>
-          <input
-            id="admit-dx"
-            value={admitDx}
-            onChange={(e) => setAdmitDx(e.target.value.slice(0, 500))}
-            placeholder="เช่น Acute appendicitis"
-            className="mt-1.5 w-full rounded-lg border px-3.5 text-[16px]"
-            style={inputStyle}
-          />
-        </div>
-      </section>
-
-      {/* ── ข้อ 10.2 ───────────────────────────────────────────────── */}
-      <section className="surface mt-4 p-4">
+      <section className="surface p-4">
         <label className="flex items-start gap-3">
           <input
             type="checkbox"
@@ -285,237 +141,16 @@ export function InfectionDiagnosisForm({
         </label>
 
         {isUti && (
-          <div className="mt-4 space-y-5 border-t pt-4" style={{ borderColor: 'var(--border)' }}>
-            {/* 10.2.1 */}
-            <fieldset>
-              <legend className="text-sm font-bold">
-                ผู้ป่วยใส่สายสวนปัสสาวะ &gt; 2 วันปฏิทิน
-              </legend>
-              <p className="mt-1 text-[12.5px] leading-relaxed" style={{ color: 'var(--muted)' }}>
-                นับวันที่ใส่วันแรกเป็นวันที่ 1 ณ วันแรกที่เกิดการติดเชื้อ (DOE)
-                หรือ 1 วันก่อน DOE จะต้องมีการคาสายสวนปัสสาวะอยู่
-              </p>
-              <div className="mt-2.5 space-y-2">
-                {(Object.keys(CATHETER_AT_DOE) as CatheterAtDoe[]).map((key) => (
-                  <label
-                    key={key}
-                    className="flex items-center gap-3 rounded-lg px-3 py-2.5"
-                    style={{
-                      background:
-                        catheterAtDoe === key ? 'var(--surface-2)' : 'transparent',
-                    }}
-                  >
-                    <input
-                      type="radio"
-                      name="catheter-at-doe"
-                      value={key}
-                      checked={catheterAtDoe === key}
-                      onChange={() => {
-                        setCatheterAtDoe(key);
-                        setError(null);
-                      }}
-                      className="h-5 w-5 shrink-0"
-                    />
-                    <span className="text-[14px]">{CATHETER_AT_DOE[key]}</span>
-                  </label>
-                ))}
-              </div>
-            </fieldset>
+          <div className="mt-4 border-t pt-4" style={{ borderColor: 'var(--border)' }}>
+            <InfectionDetailsFields
+              value={details}
+              onChange={setDetails}
+              today={today}
+              insertDate={insertDate}
+              onError={setError}
+            />
 
-            {/* 10.2.2 และ 10.2.3 เป็นผลที่เกิดพร้อมกันไม่ได้ */}
-            <fieldset>
-              <legend className="text-sm font-bold">ผลเพาะเชื้อปัสสาวะ (U/C)</legend>
-              <div className="mt-2.5 space-y-2">
-                <label
-                  className="flex items-start gap-3 rounded-lg px-3 py-2.5"
-                  style={{
-                    background:
-                      ucResult === 'NO_GROWTH' ? 'var(--surface-2)' : 'transparent',
-                  }}
-                >
-                  <input
-                    type="radio"
-                    name="uc-result"
-                    checked={ucResult === 'NO_GROWTH'}
-                    onChange={() => pickUcResult('NO_GROWTH')}
-                    className="mt-0.5 h-5 w-5 shrink-0"
-                  />
-                  <span className="text-[14px]">{UC_RESULT.NO_GROWTH}</span>
-                </label>
-
-                <label
-                  className="flex items-start gap-3 rounded-lg px-3 py-2.5"
-                  style={{
-                    background:
-                      ucResult === 'SIGNIFICANT' ? 'var(--surface-2)' : 'transparent',
-                  }}
-                >
-                  <input
-                    type="radio"
-                    name="uc-result"
-                    checked={ucResult === 'SIGNIFICANT'}
-                    onChange={() => pickUcResult('SIGNIFICANT')}
-                    className="mt-0.5 h-5 w-5 shrink-0"
-                  />
-                  <span className="text-[14px]">{UC_RESULT.SIGNIFICANT}</span>
-                </label>
-
-                <label
-                  className="flex items-start gap-3 rounded-lg px-3 py-2.5"
-                  style={{
-                    background:
-                      ucResult === 'NON_BACTERIAL' ? 'var(--surface-2)' : 'transparent',
-                  }}
-                >
-                  <input
-                    type="radio"
-                    name="uc-result"
-                    checked={ucResult === 'NON_BACTERIAL'}
-                    onChange={() => pickUcResult('NON_BACTERIAL')}
-                    className="mt-0.5 h-5 w-5 shrink-0"
-                  />
-                  <span className="text-[14px]">{UC_RESULT.NON_BACTERIAL}</span>
-                </label>
-              </div>
-
-              <div className="mt-3">
-                <label htmlFor="uc-result-date" className="text-sm font-bold">
-                  วันที่ส่งผล U/C
-                </label>
-                <input
-                  id="uc-result-date"
-                  type="date"
-                  value={ucResultDate}
-                  max={today}
-                  onChange={(e) => {
-                    setUcResultDate(e.target.value);
-                    setError(null);
-                  }}
-                  className="mt-1.5 w-full rounded-lg border px-3.5 text-[16px]"
-                  style={inputStyle}
-                />
-              </div>
-            </fieldset>
-
-            {ucResult === 'NON_BACTERIAL' && (
-              <div>
-                <label htmlFor="non-bacterial" className="text-sm font-bold">
-                  ระบุเชื้อที่พบ
-                </label>
-                <input
-                  id="non-bacterial"
-                  value={nonBacterial}
-                  onChange={(e) => {
-                    setNonBacterial(e.target.value.slice(0, ORGANISM_NAME_MAX));
-                    setError(null);
-                  }}
-                  placeholder="เช่น Candida albicans"
-                  autoCorrect="off"
-                  spellCheck={false}
-                  className="mt-1.5 w-full rounded-lg border px-3.5 text-[16px]"
-                  style={inputStyle}
-                />
-              </div>
-            )}
-
-            {ucResult === 'NO_GROWTH' && (
-              <p
-                className="rounded-lg px-3 py-2.5 text-[13px]"
-                style={{ background: 'var(--surface-2)', color: 'var(--muted)' }}
-              >
-                ไม่พบเชื้อ — ตามแบบฟอร์มให้ข้ามไปหัวข้อถัดไป ซึ่งยังไม่ได้สร้างในระบบ
-              </p>
-            )}
-
-            {/* รายการเชื้อของข้อ 10.2.3 */}
-            {ucResult === 'SIGNIFICANT' && (
-              <div>
-                <div className="flex items-baseline justify-between">
-                  <label htmlFor="organism-search" className="text-sm font-bold">
-                    เชื้อที่พบ
-                  </label>
-                  <span
-                    className="text-[12.5px] font-bold tabular-nums"
-                    style={{ color: 'var(--muted)' }}
-                  >
-                    เลือกแล้ว {chosenCount}/{MAX_ORGANISMS}
-                  </span>
-                </div>
-                <input
-                  id="organism-search"
-                  value={organismQuery}
-                  onChange={(e) => setOrganismQuery(e.target.value)}
-                  placeholder="พิมพ์อักษรตัวแรก เช่น E หรือพิมพ์ชื่อบางส่วน เช่น CRAB"
-                  autoCapitalize="characters"
-                  autoCorrect="off"
-                  spellCheck={false}
-                  className="mt-1.5 w-full rounded-lg border px-3.5 text-[15px]"
-                  style={inputStyle}
-                />
-
-                <div className="mt-2.5 space-y-1.5">
-                  {visibleOrganisms.length === 0 ? (
-                    <p className="px-1 py-2 text-[13px]" style={{ color: 'var(--muted)' }}>
-                      ไม่พบเชื้อที่ตรงกับคำค้น
-                    </p>
-                  ) : (
-                    visibleOrganisms.map((name) => {
-                      const checked = organisms.includes(name);
-                      return (
-                        <label
-                          key={name}
-                          className="flex items-center gap-3 rounded-lg px-3 py-2.5"
-                          style={{ background: checked ? 'var(--surface-2)' : 'transparent' }}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={() => toggleOrganism(name)}
-                            className="h-5 w-5 shrink-0"
-                          />
-                          <span className="text-[14px] italic">{name}</span>
-                        </label>
-                      );
-                    })
-                  )}
-
-                  {/* อยู่นอกผลการกรอง เพื่อให้เลือกได้เสมอแม้กำลังค้นหาอยู่ */}
-                  <label
-                    className="flex items-center gap-3 rounded-lg px-3 py-2.5"
-                    style={{
-                      background: organismOther !== null ? 'var(--surface-2)' : 'transparent',
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={organismOther !== null}
-                      onChange={toggleOrganismOther}
-                      className="h-5 w-5 shrink-0"
-                    />
-                    <span className="text-[14px]">อื่นๆ (ระบุเอง)</span>
-                  </label>
-                </div>
-
-                {organismOther !== null && (
-                  <input
-                    aria-label="ระบุชื่อเชื้ออื่นๆ"
-                    value={organismOther}
-                    onChange={(e) => {
-                      setOrganismOther(e.target.value.slice(0, ORGANISM_NAME_MAX));
-                      setError(null);
-                    }}
-                    placeholder="พิมพ์ชื่อเชื้อที่พบ"
-                    autoCorrect="off"
-                    spellCheck={false}
-                    className="mt-2 w-full rounded-lg border px-3.5 text-[16px]"
-                    style={inputStyle}
-                  />
-                )}
-              </div>
-            )}
-
-            {/* 10.2.4 */}
-            <div className="border-t pt-4" style={{ borderColor: 'var(--border)' }}>
+            <div className="mt-5 border-t pt-4" style={{ borderColor: 'var(--border)' }}>
               <label className="flex items-start gap-3">
                 <input
                   type="checkbox"
@@ -529,98 +164,25 @@ export function InfectionDiagnosisForm({
                 <span className="text-sm font-bold">
                   มีอาการแสดงการติดเชื้อ
                   <span className="block font-normal" style={{ color: 'var(--muted)' }}>
-                    เลือกได้มากกว่า 1 ข้อ
+                    เลือกได้มากกว่า 1 ข้อ · อาการที่พยาบาลบันทึกตอนประเมินรายวันเก็บแยกจากส่วนนี้
                   </span>
                 </span>
               </label>
 
               {hasSymptoms && (
-                <>
-                  {!catheterRemoved && (
-                    <p
-                      className="mt-3 rounded-lg px-3 py-2.5 text-[12.5px] leading-relaxed"
-                      style={{ background: 'var(--surface-2)', color: 'var(--muted)' }}
-                    >
-                      ผู้ป่วยรายนี้ยังคาสายสวนอยู่ — ปัสสาวะแสบขัด ปัสสาวะบ่อย
-                      และกดเจ็บบริเวณหัวหน่าว จึงเลือกไม่ได้
-                      เพราะผู้ที่คาสายอาจมีอาการเหล่านี้โดยไม่ได้ติดเชื้อ
-                      ใช้เกณฑ์เหล่านี้ได้เมื่อถอดสายสวนแล้วเท่านั้น
-                    </p>
-                  )}
-
-                  <ul className="mt-3 space-y-1.5">
-                    {SYMPTOMS.map((def) => {
-                      const entry = symptoms.get(def.code);
-                      const blocked = def.afterRemovalOnly && !catheterRemoved;
-                      return (
-                        <li
-                          key={def.code}
-                          className="rounded-lg px-3 py-2.5"
-                          style={{
-                            background: entry ? 'var(--surface-2)' : 'transparent',
-                            opacity: blocked ? 0.45 : 1,
-                          }}
-                        >
-                          <label className="flex items-start gap-3">
-                            <input
-                              type="checkbox"
-                              checked={entry !== undefined}
-                              disabled={blocked}
-                              onChange={() => toggleSymptom(def.code)}
-                              className="mt-0.5 h-5 w-5 shrink-0"
-                            />
-                            <span className="text-[14px]">{def.label}</span>
-                          </label>
-
-                          {entry && (
-                            <div className="mt-2 flex flex-wrap items-center gap-2 pl-8">
-                              <input
-                                type="date"
-                                aria-label={`วันที่เริ่มมีอาการ ${def.label}`}
-                                value={entry.onsetDate}
-                                max={today}
-                                onChange={(e) =>
-                                  setSymptomDate(def.code, 'onsetDate', e.target.value)
-                                }
-                                className="min-w-0 flex-1 rounded-lg border px-3 py-2 text-[14px]"
-                                style={{
-                                  background: 'var(--surface)',
-                                  borderColor: 'var(--border)',
-                                  color: 'var(--text)',
-                                }}
-                              />
-                              <span className="text-[13px]" style={{ color: 'var(--muted)' }}>
-                                ถึง
-                              </span>
-                              <input
-                                type="date"
-                                aria-label={`วันที่สิ้นสุดอาการ ${def.label}`}
-                                value={entry.endDate ?? ''}
-                                min={entry.onsetDate || undefined}
-                                max={today}
-                                onChange={(e) =>
-                                  setSymptomDate(def.code, 'endDate', e.target.value)
-                                }
-                                className="min-w-0 flex-1 rounded-lg border px-3 py-2 text-[14px]"
-                                style={{
-                                  background: 'var(--surface)',
-                                  borderColor: 'var(--border)',
-                                  color: 'var(--text)',
-                                }}
-                              />
-                            </div>
-                          )}
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </>
+                <SymptomPicker
+                  value={symptoms}
+                  onChange={(next) => {
+                    setSymptoms(next);
+                    setError(null);
+                  }}
+                  defaultOnset={details.doeDate || ''}
+                  today={today}
+                  showAfterRemovalOnly
+                  catheterRemoved={catheterRemoved}
+                />
               )}
             </div>
-
-            <p className="text-[12.5px]" style={{ color: 'var(--muted)' }}>
-              หัวข้อถัดไปของแบบฟอร์มยังไม่ได้สร้างในระบบ
-            </p>
           </div>
         )}
       </section>

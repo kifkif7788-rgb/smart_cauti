@@ -5,10 +5,11 @@ import Link from 'next/link';
 import { getSession, canAlwaysSeeDashboard, canDiagnoseInfection } from '@/lib/auth';
 import { getActiveStudy, nurseCanSeeDashboard } from '@/lib/study';
 import { db } from '@/lib/db';
+import { awaitingDiagnosisEpisodes } from '@/lib/awaiting-diagnosis';
+import { readNurseLevelCookie } from '@/lib/nurse-level-cookie';
 import { foleyDay, currentShiftWindow, currentShift, SHIFT_LABEL_TH } from '@/lib/shift';
 import { maskHn } from '@/lib/hn';
 import { AppHeader } from '@/components/AppHeader';
-import { BaselineBanner } from '@/components/BaselineBanner';
 import { HomeNotices } from '@/components/HomeNotices';
 import { OfflineQueueBadge } from '@/components/OfflineQueueBadge';
 
@@ -45,6 +46,10 @@ export default async function HomePage() {
 
   const assessedIds = new Set((shiftAssessments ?? []).map((a) => a.episode_id));
   const pending = list.filter((e) => !assessedIds.has(e.episode_id));
+  const awaitingDiagnosis = await awaitingDiagnosisEpisodes(list.map((e) => e.episode_id));
+  const awaitingList = list.filter((e) => awaitingDiagnosis.has(e.episode_id));
+  const canDiagnose = canDiagnoseInfection(session.role);
+  const nurseLevel = await readNurseLevelCookie();
   const showDashboard =
     canAlwaysSeeDashboard(session.role) || nurseCanSeeDashboard(study.current_mode);
 
@@ -56,13 +61,7 @@ export default async function HomePage() {
         <HomeNotices />
         <OfflineQueueBadge />
 
-        {study.current_mode === 'BASELINE' && (
-          <div className="mb-4">
-            <BaselineBanner />
-          </div>
-        )}
-
-        <ScanHero showDashboard={showDashboard} />
+        <ScanHero showDashboard={showDashboard} nurseLevel={nurseLevel} />
         <CareNote />
 
         {/* ── รายการค้างประเมิน ─────────────────────────────────── */}
@@ -116,6 +115,14 @@ export default async function HomePage() {
                           คาสายวันที่ {day}
                         </div>
                       </div>
+                      {awaitingDiagnosis.has(episode.episode_id) && (
+                        <span
+                          className="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold"
+                          style={{ background: 'var(--review-bg)', color: 'var(--review)' }}
+                        >
+                          รอวินิจฉัย
+                        </span>
+                      )}
                       {day >= 3 && (
                         <span
                           className="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold"
@@ -132,6 +139,67 @@ export default async function HomePage() {
           )}
         </section>
 
+        {/* ── รอวินิจฉัย ────────────────────────────────────────── */}
+        {/* แยกจากรายการค้างประเมิน เพราะผู้ป่วยที่ประเมินไปแล้วจะหลุดจากรายการนั้น */}
+        {awaitingList.length > 0 && (
+          <section className="mt-6">
+            <div className="mb-2 flex items-baseline justify-between">
+              <h2 className="text-base font-extrabold">รอวินิจฉัยการติดเชื้อ</h2>
+              <span className="text-sm font-bold tabular-nums" style={{ color: 'var(--muted)' }}>
+                {awaitingList.length} ราย
+              </span>
+            </div>
+            <p className="mb-2 text-[13px]" style={{ color: 'var(--muted)' }}>
+              {canDiagnose
+                ? 'พบอาการแสดงจากการประเมินรายวัน แตะเพื่อกรอกการวินิจฉัย'
+                : 'พบอาการแสดงจากการประเมินรายวัน รอพยาบาลวิชาชีพหรือ IC สรุปการวินิจฉัย'}
+            </p>
+            <ul className="space-y-2">
+              {awaitingList.map((episode) => {
+                const row = (
+                  <>
+                    <div
+                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-lg font-extrabold tabular-nums"
+                      style={{ background: 'var(--review-bg)', color: 'var(--review)' }}
+                      aria-label={`เตียง ${episode.bed_no}`}
+                    >
+                      {episode.bed_no}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate font-bold tabular-nums">
+                        HN {maskHn(episode.hn)}
+                      </div>
+                      <div className="text-[13px]" style={{ color: 'var(--muted)' }}>
+                        คาสายวันที่ {foleyDay(episode.insert_date)}
+                      </div>
+                    </div>
+                    <span
+                      className="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold"
+                      style={{ background: 'var(--review-bg)', color: 'var(--review)' }}
+                    >
+                      รอวินิจฉัย
+                    </span>
+                  </>
+                );
+                return (
+                  <li key={episode.episode_id}>
+                    {canDiagnose ? (
+                      <Link
+                        href={`/infection/${episode.episode_id}`}
+                        className="surface flex items-center gap-3 px-4 py-3.5"
+                      >
+                        {row}
+                      </Link>
+                    ) : (
+                      <div className="surface flex items-center gap-3 px-4 py-3.5">{row}</div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
+
         {/* ── ทางลัด ───────────────────────────────────────────── */}
         <nav className="mt-6 grid grid-cols-2 gap-3">
           {showDashboard && (
@@ -140,7 +208,7 @@ export default async function HomePage() {
               <div className="mt-1 text-sm font-bold">Dashboard</div>
             </Link>
           )}
-          {canDiagnoseInfection(session.role) && (
+          {canDiagnose && (
             <Link href="/infection" className="surface px-4 py-4 text-center">
               <UiIcon name="shield" className="mx-auto"/>
               <div className="mt-1 text-sm font-bold">แบบวินิจฉัยการติดเชื้อ</div>

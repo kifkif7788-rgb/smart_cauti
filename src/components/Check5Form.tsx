@@ -10,6 +10,14 @@ import {
   type Check5Key,
   type NurseLevel,
 } from '@/lib/check5';
+import { validateDiagnosis, validateSymptoms, type SymptomEntry } from '@/lib/infection';
+import { SymptomPicker } from '@/components/SymptomPicker';
+import {
+  InfectionDetailsFields,
+  detailsToPayload,
+  EMPTY_DETAILS,
+  type DiagnosisDetails,
+} from '@/components/InfectionDetailsFields';
 import { queueAssessment, type QueuedAssessment } from '@/lib/offline';
 
 export interface EpisodeSummary {
@@ -25,6 +33,10 @@ export interface EpisodeSummary {
 
 interface Props {
   episode: EpisodeSummary;
+  /** วันที่ตามเวลาไทย ใช้เป็นเพดานของช่องวันที่ในส่วนวินิจฉัย */
+  today: string;
+  /** คุณวุฒิที่เลือกไว้ที่หน้าแรก — null เมื่อเข้ามาโดยไม่ผ่านหน้าแรก */
+  defaultNurseLevel?: NurseLevel | null;
   /** โหมดบันทึกข้อมูลโครงการ; ทุกโหมดเปิดหน้าผลหลังบันทึกสำเร็จ */
   studyMode: 'BASELINE' | 'INTERVENTION';
   assessedThisShift: boolean;
@@ -38,13 +50,18 @@ type AnswerState = Partial<Record<Check5Key, boolean>>;
 
 export function Check5Form({
   episode,
+  today,
+  defaultNurseLevel = null,
   assessedThisShift,
   children,
   preview = false,
 }: Props) {
   const router = useRouter();
   const [answers, setAnswers] = useState<AnswerState>({});
-  const [nurseLevel, setNurseLevel] = useState<NurseLevel | null>(null);
+  const [nurseLevel, setNurseLevel] = useState<NurseLevel | null>(defaultNurseLevel);
+  // มีอาการแสดงเมื่อไร จึงเปิดส่วนวินิจฉัยให้กรอกต่อในหน้าเดียวกัน
+  const [symptoms, setSymptoms] = useState<SymptomEntry[]>([]);
+  const [details, setDetails] = useState<DiagnosisDetails>(EMPTY_DETAILS);
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [previewSaved, setPreviewSaved] = useState(false);
@@ -62,10 +79,14 @@ export function Check5Form({
         answers?: AnswerState;
         notes?: string;
         nurseLevel?: unknown;
+        symptoms?: SymptomEntry[];
+        details?: DiagnosisDetails;
       };
       if (draft.answers) setAnswers(draft.answers);
       if (typeof draft.notes === 'string') setNotes(draft.notes);
       if (isNurseLevel(draft.nurseLevel)) setNurseLevel(draft.nurseLevel);
+      if (Array.isArray(draft.symptoms)) setSymptoms(draft.symptoms);
+      if (draft.details) setDetails(draft.details);
     } catch {
       // sessionStorage อาจถูกปิดในโหมดส่วนตัว — ไม่ใช่เรื่องร้ายแรง
     }
@@ -73,11 +94,14 @@ export function Check5Form({
 
   useEffect(() => {
     try {
-      sessionStorage.setItem(draftKey, JSON.stringify({ answers, notes, nurseLevel }));
+      sessionStorage.setItem(
+        draftKey,
+        JSON.stringify({ answers, notes, nurseLevel, symptoms, details }),
+      );
     } catch {
       /* ไม่ทำอะไร */
     }
-  }, [answers, notes, nurseLevel, draftKey]);
+  }, [answers, notes, nurseLevel, symptoms, details, draftKey]);
 
   const answeredCount = useMemo(
     () => CHECK5_ITEMS.filter((i) => answers[i.key] !== undefined).length,
@@ -111,6 +135,29 @@ export function Check5Form({
       return;
     }
 
+    // ผู้ป่วยที่ยังคาสายอยู่เสมอในหน้านี้ เกณฑ์ที่ต้องถอดสายก่อนจึงไม่ถูกแสดงให้เลือก
+    if (symptoms.length > 0) {
+      const symptomProblem = validateSymptoms(symptoms, false);
+      if (symptomProblem) {
+        setError(symptomProblem);
+        return;
+      }
+    }
+
+    // การวินิจฉัยเป็นงานของพยาบาลวิชาชีพ ผู้ช่วยพยาบาลบันทึกได้เฉพาะอาการที่สังเกตเห็น
+    const diagnosis =
+      nurseLevel === 'RN' && symptoms.length > 0 ? detailsToPayload(details) : null;
+    if (diagnosis) {
+      const diagnosisProblem = validateDiagnosis({ ...diagnosis, symptoms }, false);
+      if (diagnosisProblem) {
+        setError(diagnosisProblem);
+        document
+          .getElementById('infection-details')
+          ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+    }
+
     if (preview) { setPreviewSaved(true); return; }
 
     setSubmitting(true);
@@ -121,6 +168,8 @@ export function Check5Form({
       episodeId: episode.episodeId,
       answers: answers as Record<Check5Key, boolean>,
       nurseLevel,
+      symptoms,
+      diagnosis,
       notes: notes.trim() || undefined,
       queuedAt: new Date().toISOString(),
     };
@@ -268,6 +317,18 @@ export function Check5Form({
         })}
 
         {/* ── ผู้ประเมิน ────────────────────────────────────────── */}
+        {/* ปกติเลือกไว้แล้วที่หน้าแรก ตรงนี้จึงแสดงยืนยัน — ยกเว้นเข้ามาโดยไม่ผ่านหน้าแรก */}
+        {defaultNurseLevel ? (
+          <div id="nurse-level" className="assessment-notes">
+            <div className="text-sm font-bold">ผู้ประเมิน</div>
+            <div className="mt-1.5 text-[15px] font-bold" style={{ color: 'var(--primary)' }}>
+              {NURSE_LEVEL[defaultNurseLevel]}
+            </div>
+            <p className="mt-0.5 text-[12.5px]" style={{ color: 'var(--muted)' }}>
+              เลือกไว้ที่หน้าแรก เปลี่ยนได้ที่หน้าแรก
+            </p>
+          </div>
+        ) : (
         <fieldset id="nurse-level" className="assessment-notes">
           <legend className="text-sm font-bold">ผู้ประเมิน</legend>
           <div className="mt-2 grid grid-cols-2 gap-2">
@@ -304,6 +365,55 @@ export function Check5Form({
             </p>
           )}
         </fieldset>
+        )}
+
+        {/* ── อาการแสดงการติดเชื้อ ─────────────────────────────── */}
+        <div className="assessment-notes">
+          <div className="text-sm font-bold">อาการแสดงการติดเชื้อ</div>
+          <p className="mt-0.5 text-[12.5px]" style={{ color: 'var(--muted)' }}>
+            ถ้าไม่มีอาการ ข้ามข้อนี้ได้เลย · เลือกได้มากกว่า 1 ข้อ
+          </p>
+          <SymptomPicker
+            value={symptoms}
+            onChange={(next) => {
+              setSymptoms(next);
+              setError(null);
+            }}
+            defaultOnset={today}
+            today={today}
+            showAfterRemovalOnly={false}
+            catheterRemoved={false}
+          />
+        </div>
+
+        {/* ── วินิจฉัยเพิ่มเติม — เฉพาะพยาบาลวิชาชีพ ───────────── */}
+        {symptoms.length > 0 && nurseLevel === 'RN' && (
+          <div id="infection-details" className="assessment-notes">
+            <div className="text-sm font-bold">การวินิจฉัยการติดเชื้อ</div>
+            <p className="mt-0.5 mb-3 text-[12.5px]" style={{ color: 'var(--muted)' }}>
+              มีอาการแสดงแล้ว กรุณากรอกรายละเอียดเพื่อสรุปการวินิจฉัย
+            </p>
+            <InfectionDetailsFields
+              value={details}
+              onChange={setDetails}
+              today={today}
+              insertDate={episode.insertDate}
+              onError={setError}
+            />
+          </div>
+        )}
+
+        {symptoms.length > 0 && nurseLevel === 'PN' && (
+          <div
+            className="rounded-xl border-l-4 px-4 py-3 text-[13px] leading-relaxed"
+            style={{ background: 'var(--correct-bg)', borderColor: 'var(--correct)' }}
+          >
+            <strong style={{ color: 'var(--correct)' }}>รอวินิจฉัย</strong>
+            {' — '}
+            บันทึกอาการไว้ให้แล้ว การวินิจฉัยต้องใช้ผลเพาะเชื้อและเวชระเบียน
+            ผู้ป่วยรายนี้จะขึ้นสถานะรอวินิจฉัยให้พยาบาลวิชาชีพหรือ IC กรอกต่อ
+          </div>
+        )}
 
         {/* ── หมายเหตุ ──────────────────────────────────────────── */}
         <div className="assessment-notes">

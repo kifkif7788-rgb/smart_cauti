@@ -17,6 +17,7 @@ import { EpisodeActions } from '@/components/EpisodeActions';
 import { InvalidTag } from '@/components/InvalidTag';
 import { ScanRequired } from '@/components/ScanRequired';
 import { hasScanProof } from '@/lib/scan-proof';
+import { readNurseLevelCookie } from '@/lib/nurse-level-cookie';
 
 export default async function AssessPage(props: PageProps<'/assess/[tagCode]'>) {
   const session = await getSession();
@@ -110,6 +111,8 @@ export default async function AssessPage(props: PageProps<'/assess/[tagCode]'>) 
           insertDateTh: formatThaiDate(episode.insert_date),
           foleyDay: day,
         }}
+        today={bangkokDateString()}
+        defaultNurseLevel={await readNurseLevelCookie()}
         studyMode={study.current_mode}
         assessedThisShift={(count ?? 0) > 0}
       >

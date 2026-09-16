@@ -22,6 +22,10 @@ export const NURSE_LEVEL = {
 
 export type NurseLevel = keyof typeof NURSE_LEVEL;
 
+/** เลือกครั้งเดียวที่หน้าแรกแล้วใช้ได้ทั้งเวร — หนึ่งเวรเท่ากับ 8 ชั่วโมง */
+export const NURSE_LEVEL_COOKIE = 'scg_nurse_level';
+export const NURSE_LEVEL_MAX_AGE = 8 * 60 * 60;
+
 export function isNurseLevel(value: unknown): value is NurseLevel {
   return value === 'RN' || value === 'PN';
 }
