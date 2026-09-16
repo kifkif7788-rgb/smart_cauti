@@ -14,6 +14,18 @@ export function canAlwaysSeeDashboard(role: UserRole): boolean {
   return DASHBOARD_ROLES.includes(role);
 }
 
+/**
+ * role ที่สรุปแบบวินิจฉัยการติดเชื้อได้
+ *
+ * เป็นการตัดสินทางระบาดวิทยาที่ต้องใช้ผลเพาะเชื้อและเวชระเบียน
+ * ไม่ใช่งานประจำเวรของพยาบาลข้างเตียง
+ */
+const DIAGNOSIS_ROLES: readonly UserRole[] = ['IC_NURSE', 'WARD_HEAD', 'ADMIN'];
+
+export function canDiagnoseInfection(role: UserRole): boolean {
+  return DIAGNOSIS_ROLES.includes(role);
+}
+
 /** แหล่งข้อมูลของการประเมิน — แยกข้อมูลผู้ประเมินออกจากพยาบาลเพื่อวิเคราะห์ */
 export function sourceForRole(role: UserRole): 'NURSE' | 'AUDITOR' {
   return role === 'AUDITOR' ? 'AUDITOR' : 'NURSE';

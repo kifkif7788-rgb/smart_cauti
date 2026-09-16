@@ -24,7 +24,7 @@ const SESSION_HOURS = 12;
 const KEY_LENGTH = 32;
 
 export type { UserRole } from './auth-roles';
-export { canAlwaysSeeDashboard, sourceForRole } from './auth-roles';
+export { canAlwaysSeeDashboard, canDiagnoseInfection, sourceForRole } from './auth-roles';
 
 import type { UserRole } from './auth-roles';
 
@@ -68,7 +68,7 @@ export function isValidPinFormat(pin: unknown): pin is string {
 
 // ── JWT session ──────────────────────────────────────────────────────
 
-function sessionSecret(): Uint8Array {
+export function sessionSecret(): Uint8Array {
   const secret = process.env.SESSION_SECRET;
   if (!secret || secret.length < 32) {
     throw new Error(

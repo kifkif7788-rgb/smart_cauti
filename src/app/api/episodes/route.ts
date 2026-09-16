@@ -1,6 +1,7 @@
-import type { NextRequest } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 import { db, writeAudit } from '@/lib/db';
 import { getSession } from '@/lib/auth';
+import { attachScanProof } from '@/lib/scan-proof';
 import { getActiveStudy } from '@/lib/study';
 import { isValidTagCode, bedNoFromTagCode } from '@/lib/qr';
 import { isValidHn, normalizeHn } from '@/lib/hn';
@@ -137,8 +138,12 @@ export async function POST(request: NextRequest) {
     },
   });
 
-  return Response.json(
-    { episodeId: created.episode_id, studyCode: created.study_code },
-    { status: 201 },
+  // พยาบาลเพิ่งลงทะเบียนผู้ป่วยที่เตียงนี้อยู่ตรงหน้า — ให้ตั๋วต่อเพื่อประเมินได้เลยโดยไม่ต้องสแกนซ้ำ
+  return attachScanProof(
+    NextResponse.json(
+      { episodeId: created.episode_id, studyCode: created.study_code },
+      { status: 201 },
+    ),
+    tagCode,
   );
 }

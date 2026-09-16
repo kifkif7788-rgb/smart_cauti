@@ -2,7 +2,7 @@ import { UiIcon } from '@/components/UiIcon';
 import { ScanHero, CareNote } from '@/components/Brand';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { getSession, canAlwaysSeeDashboard } from '@/lib/auth';
+import { getSession, canAlwaysSeeDashboard, canDiagnoseInfection } from '@/lib/auth';
 import { getActiveStudy, nurseCanSeeDashboard } from '@/lib/study';
 import { db } from '@/lib/db';
 import { foleyDay, currentShiftWindow, currentShift, SHIFT_LABEL_TH } from '@/lib/shift';
@@ -73,6 +73,11 @@ export default async function HomePage() {
               {pending.length} / {list.length} ราย
             </span>
           </div>
+          {pending.length > 0 && (
+            <p className="mb-2 text-[13px]" style={{ color: 'var(--muted)' }}>
+              รายการนี้ดูได้อย่างเดียว — ต้องสแกน QR ที่ป้ายข้างเตียงจึงจะเริ่มประเมินได้
+            </p>
+          )}
 
           {list.length === 0 ? (
             <p
@@ -94,14 +99,7 @@ export default async function HomePage() {
                 const day = foleyDay(episode.insert_date);
                 return (
                   <li key={episode.episode_id}>
-                    <Link
-                      href={
-                        episode.tag_code
-                          ? `/assess/${episode.tag_code}`
-                          : `/assess/by-episode/${episode.episode_id}`
-                      }
-                      className="surface flex items-center gap-3 px-4 py-3.5"
-                    >
+                    <div className="surface flex items-center gap-3 px-4 py-3.5">
                       <div
                         className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-lg font-extrabold tabular-nums"
                         style={{ background: 'var(--surface-2)', color: 'var(--primary)' }}
@@ -126,23 +124,7 @@ export default async function HomePage() {
                           ทบทวน NEED
                         </span>
                       )}
-                      <svg
-                        width="18"
-                        height="18"
-                        viewBox="0 0 20 20"
-                        fill="none"
-                        className="shrink-0"
-                        aria-hidden="true"
-                      >
-                        <path
-                          d="M7.5 5l5 5-5 5"
-                          stroke="var(--muted)"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </Link>
+                    </div>
                   </li>
                 );
               })}
@@ -156,6 +138,12 @@ export default async function HomePage() {
             <Link href="/dashboard" className="surface px-4 py-4 text-center">
               <UiIcon name="chart" className="mx-auto"/>
               <div className="mt-1 text-sm font-bold">Dashboard</div>
+            </Link>
+          )}
+          {canDiagnoseInfection(session.role) && (
+            <Link href="/infection" className="surface px-4 py-4 text-center">
+              <UiIcon name="shield" className="mx-auto"/>
+              <div className="mt-1 text-sm font-bold">แบบวินิจฉัยการติดเชื้อ</div>
             </Link>
           )}
           <Link href="/learn" className="surface px-4 py-4 text-center">

@@ -1,29 +1,31 @@
-import { redirect } from 'next/navigation';
-import { getSession } from '@/lib/auth';
+import { NextResponse, type NextRequest } from 'next/server';
 import { db } from '@/lib/db';
+import { getSession } from '@/lib/auth';
 import { isValidTagCode, verifyTagSignature } from '@/lib/qr';
-import { InvalidTag } from '@/components/InvalidTag';
+import { attachScanProof } from '@/lib/scan-proof';
 
 /**
  * ปลายทางของ QR Code บนป้าย — /s/{tagCode}?k={hmac}
  *
- * หน้านี้ตรวจลายเซ็นแล้วส่งต่อ ไม่แสดง UI ในกรณีปกติ
+ * เป็น route handler ไม่ใช่ page เพราะต้องออกตั๋วยืนยันการสแกนเป็น cookie
+ * ซึ่ง server component ตั้ง cookie ระหว่าง render ไม่ได้
+ *
  * แยกจาก /assess เพื่อให้ URL บนป้ายสั้นพอที่ QR จะอ่านง่ายในแสงน้อย
  */
-export default async function ScanEntryPage(props: PageProps<'/s/[tagCode]'>) {
-  const { tagCode } = await props.params;
-  const search = await props.searchParams;
-  const signature = typeof search.k === 'string' ? search.k : null;
+export async function GET(request: NextRequest, ctx: RouteContext<'/s/[tagCode]'>) {
+  const { tagCode } = await ctx.params;
+  const signature = request.nextUrl.searchParams.get('k');
+  const to = (path: string) => NextResponse.redirect(new URL(path, request.url));
 
   const session = await getSession();
   if (!session) {
     // เก็บปลายทางไว้ให้กลับมาหลัง login
     const target = `/s/${tagCode}${signature ? `?k=${signature}` : ''}`;
-    redirect(`/login?next=${encodeURIComponent(target)}`);
+    return to(`/login?next=${encodeURIComponent(target)}`);
   }
 
   if (!isValidTagCode(tagCode) || !verifyTagSignature(tagCode, signature)) {
-    return <InvalidTag reason="ป้ายนี้ไม่ผ่านการตรวจสอบความถูกต้อง" />;
+    return to('/tag-error?reason=signature');
   }
 
   const { data: tag } = await db()
@@ -33,7 +35,7 @@ export default async function ScanEntryPage(props: PageProps<'/s/[tagCode]'>) {
     .maybeSingle();
 
   if (!tag || tag.is_retired) {
-    return <InvalidTag reason="ไม่พบป้ายนี้ในระบบ หรือป้ายถูกยกเลิกการใช้งานแล้ว" />;
+    return to('/tag-error?reason=unknown');
   }
 
   const { data: episode } = await db()
@@ -43,5 +45,5 @@ export default async function ScanEntryPage(props: PageProps<'/s/[tagCode]'>) {
     .eq('is_active', true)
     .maybeSingle();
 
-  redirect(episode ? `/assess/${tagCode}` : `/bind/${tagCode}`);
+  return attachScanProof(to(episode ? `/assess/${tagCode}` : `/bind/${tagCode}`), tagCode);
 }

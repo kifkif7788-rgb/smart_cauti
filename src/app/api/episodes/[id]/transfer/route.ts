@@ -1,6 +1,7 @@
-import type { NextRequest } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 import { db, writeAudit } from '@/lib/db';
 import { getSession } from '@/lib/auth';
+import { attachScanProof } from '@/lib/scan-proof';
 
 /**
  * ย้ายเตียง
@@ -126,10 +127,14 @@ export async function POST(
     detail: { studyCode: episode.study_code, fromBedNo, toBedNo: targetBed },
   });
 
-  return Response.json({
-    ok: true,
-    fromBedNo,
-    toBedNo: targetBed,
-    tagCode: targetTag.tag_code,
-  });
+  // ผู้ป่วยรายเดิมที่เพิ่งย้ายมา — ให้ตั๋วของเตียงใหม่เพื่อประเมินต่อได้ทันที
+  return attachScanProof(
+    NextResponse.json({
+      ok: true,
+      fromBedNo,
+      toBedNo: targetBed,
+      tagCode: targetTag.tag_code,
+    }),
+    targetTag.tag_code,
+  );
 }

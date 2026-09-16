@@ -132,6 +132,47 @@ export type StudyModeLogRow = {
   changed_at: string;
 }
 
+export type CatheterAtDoeDb = 'GT_2_DAYS' | 'LE_2_DAYS' | 'NONE';
+export type UrineCultureResultDb = 'NO_GROWTH' | 'SIGNIFICANT';
+
+export type InfectionDiagnosisRow = {
+  diagnosis_id: string;
+  episode_id: string;
+  admit_date: string;
+  doe_date: string;
+  admit_dx: string | null;
+  /** คอลัมน์ generated — ฐานข้อมูลคำนวณจาก doe_date ลบ admit_date */
+  origin: 'HAI' | 'CI';
+  catheter_at_doe: CatheterAtDoeDb;
+  uc_result: UrineCultureResultDb;
+  organisms: string[];
+  diagnosed_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export type InfectionSymptomCodeDb =
+  | 'FEVER'
+  | 'HYPOTHERMIA'
+  | 'DYSURIA'
+  | 'SEDIMENT'
+  | 'FREQUENCY'
+  | 'URGENCY'
+  | 'SUPRAPUBIC_TENDERNESS'
+  | 'CVA_TENDERNESS'
+  | 'APNEA'
+  | 'BRADYCARDIA'
+  | 'LETHARGY'
+  | 'VOMITING';
+
+export type InfectionSymptomRow = {
+  symptom_id: string;
+  diagnosis_id: string;
+  code: InfectionSymptomCodeDb;
+  onset_date: string;
+  end_date: string | null;
+}
+
 type Table<Row, Insert = Partial<Row>> = {
   Row: Row;
   Insert: Insert;
@@ -152,6 +193,12 @@ export interface Database {
       corrective_action: Table<CorrectiveActionRow>;
       usability_response: Table<UsabilityResponseRow>;
       audit_log: Table<AuditLogRow>;
+      // origin เป็นคอลัมน์ generated จึงเขียนค่าเข้าไปเองไม่ได้
+      infection_diagnosis: Table<
+        InfectionDiagnosisRow,
+        Omit<Partial<InfectionDiagnosisRow>, 'origin'>
+      >;
+      infection_symptom: Table<InfectionSymptomRow>;
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -162,6 +209,9 @@ export interface Database {
       source_type: SourceDb;
       feedback_type: FeedbackDb;
       action_status: ActionStatusDb;
+      catheter_at_doe: CatheterAtDoeDb;
+      urine_culture_result: UrineCultureResultDb;
+      infection_symptom_code: InfectionSymptomCodeDb;
     };
     CompositeTypes: Record<string, never>;
   };

@@ -205,6 +205,8 @@ export function QrScanner() {
         </label>
         <p className="mt-0.5 text-[13px]" style={{ color: 'var(--muted)' }}>
           รหัสพิมพ์อยู่ใต้ QR บนป้าย — SM-B01 คือเตียง 1
+          <br />
+          ใช้ได้เฉพาะเตียงว่างเพื่อลงทะเบียนผู้ป่วยใหม่ · เตียงที่มีผู้ป่วยแล้วต้องสแกน QR
         </p>
         <div className="mt-2.5 flex gap-2">
           <input

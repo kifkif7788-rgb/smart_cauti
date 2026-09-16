@@ -1,5 +1,6 @@
 import { redirect, notFound } from 'next/navigation';
-import { getSession, sourceForRole } from '@/lib/auth';
+import Link from 'next/link';
+import { getSession, sourceForRole, canDiagnoseInfection } from '@/lib/auth';
 import { getActiveStudy } from '@/lib/study';
 import { db, writeAudit } from '@/lib/db';
 import {
@@ -10,9 +11,12 @@ import {
 } from '@/lib/shift';
 import { isValidTagCode } from '@/lib/qr';
 import { AppHeader } from '@/components/AppHeader';
+import { UiIcon } from '@/components/UiIcon';
 import { Check5Form } from '@/components/Check5Form';
 import { EpisodeActions } from '@/components/EpisodeActions';
 import { InvalidTag } from '@/components/InvalidTag';
+import { ScanRequired } from '@/components/ScanRequired';
+import { hasScanProof } from '@/lib/scan-proof';
 
 export default async function AssessPage(props: PageProps<'/assess/[tagCode]'>) {
   const session = await getSession();
@@ -40,6 +44,12 @@ export default async function AssessPage(props: PageProps<'/assess/[tagCode]'>) 
 
     // เตียงว่าง — พาไปหน้าลงทะเบียนผู้ป่วยแทนการแสดงข้อผิดพลาด
     redirect(`/bind/${tagCode}`);
+  }
+
+  // เตียงที่มีผู้ป่วยอยู่ต้องมาจากการสแกน QR เท่านั้น — กรอกรหัสเองหรือย้อนกลับมาทีหลังเข้าไม่ได้
+  // ตรวจก่อน writeAudit เพื่อไม่ให้ความพยายามที่ถูกปฏิเสธถูกบันทึกเป็นการเปิดดูข้อมูลผู้ป่วย
+  if (!(await hasScanProof(tagCode))) {
+    return <ScanRequired bedNo={episode.bed_no} />;
   }
 
   // การเปิดดูข้อมูลผู้ป่วยต้องสืบย้อนได้ตามนโยบายข้อมูลส่วนบุคคล
@@ -111,6 +121,15 @@ export default async function AssessPage(props: PageProps<'/assess/[tagCode]'>) 
           today={bangkokDateString()}
           insertDate={episode.insert_date}
         />
+        {canDiagnoseInfection(session.role) && (
+          <Link
+            href={`/infection/${episode.episode_id}`}
+            className="surface mt-3 flex items-center justify-center gap-2 px-4 py-3.5 text-sm font-bold"
+          >
+            <UiIcon name="shield" width={20} height={20} />
+            แบบวินิจฉัยการติดเชื้อ
+          </Link>
+        )}
       </Check5Form>
     </>
   );
