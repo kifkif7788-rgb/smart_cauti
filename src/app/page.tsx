@@ -1,4 +1,3 @@
-import { UiIcon } from '@/components/UiIcon';
 import { ScanHero, CareNote } from '@/components/Brand';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
@@ -107,25 +106,6 @@ export default async function HomePage() {
           </section>
         )}
 
-        {/* ── ทางลัด ───────────────────────────────────────────── */}
-        <nav className="mt-6 grid grid-cols-2 gap-3">
-          {showDashboard && (
-            <Link href="/dashboard" className="surface px-4 py-4 text-center">
-              <UiIcon name="chart" className="mx-auto"/>
-              <div className="mt-1 text-sm font-bold">Dashboard</div>
-            </Link>
-          )}
-          {canDiagnose && (
-            <Link href="/infection" className="surface px-4 py-4 text-center">
-              <UiIcon name="shield" className="mx-auto"/>
-              <div className="mt-1 text-sm font-bold">แบบวินิจฉัยการติดเชื้อ</div>
-            </Link>
-          )}
-          <Link href="/learn" className="surface px-4 py-4 text-center">
-            <UiIcon name="book" className="mx-auto"/>
-            <div className="mt-1 text-sm font-bold">สื่อการเรียนรู้</div>
-          </Link>
-        </nav>
       </main>
     </>
   );

@@ -24,29 +24,39 @@ export function NurseLevelSwitch({ initial }: { initial: NurseLevel | null }) {
 
   return (
     <section className="nurse-switch" aria-label="เลือกคุณวุฒิผู้ประเมิน">
-      <div className="text-sm font-bold">ผู้ประเมินเวรนี้</div>
-      <div className="mt-2 grid grid-cols-2 gap-2">
+      <div className="nurse-switch-title">ผู้ประเมินเวรนี้</div>
+      <div className="nurse-pills">
         {(Object.keys(NURSE_LEVEL) as NurseLevel[]).map((key) => {
           const active = level === key;
+          const [code, name] = NURSE_LEVEL[key].split(' · ');
           return (
             <button
               key={key}
               type="button"
               onClick={() => pick(key)}
               aria-pressed={active}
-              className="rounded-lg border px-3 py-3 text-[15px] font-bold"
-              style={{
-                background: active ? 'var(--primary)' : 'var(--surface-2)',
-                borderColor: active ? 'var(--primary)' : 'var(--border)',
-                color: active ? '#fff' : 'var(--text)',
-              }}
+              data-level={key}
+              className={`nurse-pill${active ? ' is-active' : ''}`}
             >
-              {NURSE_LEVEL[key]}
+              <span className="nurse-pill-code">{code}</span>
+              <span className="nurse-pill-name">{name}</span>
+              {active && (
+                <svg viewBox="0 0 20 20" aria-hidden="true" className="nurse-pill-check">
+                  <path
+                    d="m4 10.5 4 4 8-9"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.6"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              )}
             </button>
           );
         })}
       </div>
-      <p className="mt-1.5 text-[12.5px]" style={{ color: 'var(--muted)' }}>
+      <p className="nurse-switch-hint">
         {level
           ? 'ใช้กับทุกแบบประเมินในเวรนี้ เปลี่ยนได้ที่นี่'
           : 'เลือกก่อนเริ่มประเมิน จะใช้กับทุกเตียงในเวรนี้'}

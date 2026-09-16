@@ -206,13 +206,13 @@ body > main, body > .assessment-page, body > header + main { max-width:540px; }
 .scan-camera svg { width:19px; height:19px; }
 .scan-label { font-family:Arial,sans-serif; font-size:22px; font-weight:700; line-height:1.4; padding-top:4px; letter-spacing:.3px; }
 .scan-help { font-size:11px; color:var(--muted); margin:3px 0 16px; }
-.feature-row { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin:0 2px; }
-.feature-row span { display:grid; place-items:center; width:51px; height:51px; margin:0 auto 7px; border-radius:50%; background:linear-gradient(135deg,#ff96b1,#f44873); color:white; border:1px solid white; box-shadow:0 0 0 3px #fff8,inset 0 0 0 1px #ffffff45; }
-.feature-row span svg { width:29px; height:29px; }
+.feature-row { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin:6px 2px 0; }
+.feature-row span { display:grid; place-items:center; width:68px; height:68px; margin:0 auto 9px; border-radius:50%; background:linear-gradient(135deg,#ff96b1,#f44873); color:white; border:1px solid white; box-shadow:0 0 0 3px #fff8,inset 0 0 0 1px #ffffff45; }
+.feature-row span svg { width:38px; height:38px; }
 .feature-row [data-tone="1"] { background:linear-gradient(135deg,#64c4ff,#168bec); }
 .feature-row [data-tone="2"] { background:linear-gradient(135deg,#ffe49c,#ffbc31); color:#b96b00; }
 .feature-row [data-tone="3"] { background:linear-gradient(135deg,#b3efd1,#54cba0); color:#07885f; }
-.feature-row small { display:block; max-width:75px; margin:auto; font-size:11px; font-weight:600; line-height:1.45; color:var(--primary); }
+.feature-row small { display:block; max-width:95px; margin:auto; font-size:13px; font-weight:700; line-height:1.4; color:var(--primary); }
 /* a เป็น inline โดยปริยาย ต้องบังคับ block ไม่งั้นวงกลมไอคอนหลุดจากกริด */
 .feature-row a { display:block; text-align:center; text-decoration:none; -webkit-tap-highlight-color:transparent; }
 .feature-row a:active span { transform:scale(.93); }
@@ -383,4 +383,26 @@ body > main, body > .assessment-page, body > header + main { max-width:540px; }
 .pin-keypad button.pin-keypad-action { font-size:17px; color:var(--muted); background:transparent; box-shadow:none; }
 
 /* เลือกคุณวุฒิผู้ประเมินที่หน้าแรก — วางต่อจากโลโก้ในกล่องสแกน */
-.nurse-switch { margin: 14px 2px 4px; text-align: left; }
+.nurse-switch { margin:16px 2px 6px; text-align:left; }
+.nurse-switch-title { font-size:13.5px; font-weight:800; color:var(--primary); }
+.nurse-switch-hint { margin-top:7px; font-size:12.5px; color:var(--muted); }
+.nurse-pills { display:grid; grid-template-columns:1fr 1fr; gap:11px; margin-top:9px; }
+.nurse-pill {
+  position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:1px; min-height:66px; padding:10px 12px; border-radius:18px;
+  border:2px solid var(--border); background:var(--surface); color:var(--muted);
+  cursor:pointer; transition:transform .13s ease, box-shadow .18s ease, border-color .18s ease;
+}
+.nurse-pill:active { transform:scale(.97); }
+.nurse-pill-code { font-size:17px; font-weight:800; letter-spacing:.3px; line-height:1.15; }
+.nurse-pill-name { font-size:12px; font-weight:600; opacity:.9; }
+.nurse-pill-check { position:absolute; top:7px; right:8px; width:15px; height:15px; }
+.nurse-pill.is-active { color:#fff; border-color:transparent; }
+.nurse-pill[data-level="RN"].is-active {
+  background:linear-gradient(140deg,#4fb6f8,#1272d6);
+  box-shadow:0 7px 18px #1272d640, inset 0 1px 0 #ffffff40;
+}
+.nurse-pill[data-level="PN"].is-active {
+  background:linear-gradient(140deg,#41d8ac,#0a9b79);
+  box-shadow:0 7px 18px #0a9b7940, inset 0 1px 0 #ffffff40;
+}

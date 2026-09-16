@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { UiIcon } from './UiIcon';
 import { LogoutButton } from './LogoutButton';
-import { getSession } from '@/lib/auth';
+import { getSession, canDiagnoseInfection } from '@/lib/auth';
 
 interface Props {
   title?: string;
@@ -24,6 +24,9 @@ export async function AppHeader({ title, backHref, subtitle }: Props) {
               <Link href="/admin/tags"><UiIcon name="qr"/>สร้าง QR</Link>
             )}
             <Link href="/scan"><UiIcon name="arrow"/>สแกน QR</Link>
+            {session && canDiagnoseInfection(session.role) && (
+              <Link href="/infection"><UiIcon name="shield"/>แบบวินิจฉัยการติดเชื้อ</Link>
+            )}
             <Link href="/learn"><UiIcon name="book"/>สื่อการเรียนรู้</Link>
             <LogoutButton />
           </nav>
