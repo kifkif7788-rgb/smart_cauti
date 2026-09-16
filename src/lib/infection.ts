@@ -123,40 +123,38 @@ export type SymptomCode =
   | 'VOMITING';
 
 export interface SymptomDef {
-  no: number;
   code: SymptomCode;
   label: string;
   /** เกณฑ์เฉพาะผู้ป่วยอายุต่ำกว่า 1 ปี */
   infantOnly?: boolean;
   /**
-   * ข้อ 3, 5 และ 7 ใช้ได้เฉพาะผู้ป่วยที่ถอดสายสวนแล้ว
+   * ปัสสาวะแสบขัด ปัสสาวะบ่อย และกดเจ็บบริเวณหัวหน่าว ใช้ได้เฉพาะผู้ป่วยที่ถอดสายสวนแล้ว
    * เพราะผู้ที่ยังคาสายอยู่อาจมีอาการเหล่านี้โดยไม่ได้ติดเชื้อ
    */
   afterRemovalOnly?: boolean;
 }
 
+/** เรียงตามลำดับในแบบฟอร์มต้นฉบับ */
 export const SYMPTOMS: readonly SymptomDef[] = [
-  { no: 1, code: 'FEVER', label: 'มีไข้ > 38 องศาเซลเซียส' },
-  { no: 2, code: 'HYPOTHERMIA', label: 'ตัวเย็น อุณหภูมิ < 36 องศาเซลเซียส' },
-  { no: 3, code: 'DYSURIA', label: 'ปัสสาวะแสบขัด', afterRemovalOnly: true },
-  { no: 4, code: 'SEDIMENT', label: 'ปัสสาวะมีตะกอน' },
-  { no: 5, code: 'FREQUENCY', label: 'ปัสสาวะบ่อย', afterRemovalOnly: true },
-  { no: 6, code: 'URGENCY', label: 'ปัสสาวะเฉียบพลัน' },
+  { code: 'FEVER', label: 'มีไข้ > 38 องศาเซลเซียส' },
+  { code: 'HYPOTHERMIA', label: 'ตัวเย็น อุณหภูมิ < 36 องศาเซลเซียส' },
+  { code: 'DYSURIA', label: 'ปัสสาวะแสบขัด', afterRemovalOnly: true },
+  { code: 'SEDIMENT', label: 'ปัสสาวะมีตะกอน' },
+  { code: 'FREQUENCY', label: 'ปัสสาวะบ่อย', afterRemovalOnly: true },
+  { code: 'URGENCY', label: 'ปัสสาวะเฉียบพลัน' },
   {
-    no: 7,
     code: 'SUPRAPUBIC_TENDERNESS',
     label: 'กดเจ็บบริเวณหัวหน่าวโดยไม่มีสาเหตุอื่น',
     afterRemovalOnly: true,
   },
   {
-    no: 8,
     code: 'CVA_TENDERNESS',
     label: 'ปวดหลังหรือกดเจ็บบริเวณ Costovertebral angle โดยไม่มีสาเหตุอื่น',
   },
-  { no: 9, code: 'APNEA', label: 'มีภาวะหยุดหายใจชั่วขณะ', infantOnly: true },
-  { no: 10, code: 'BRADYCARDIA', label: 'หัวใจเต้นช้าผิดปกติ', infantOnly: true },
-  { no: 11, code: 'LETHARGY', label: 'ซึมไม่มีสาเหตุอื่น', infantOnly: true },
-  { no: 12, code: 'VOMITING', label: 'อาเจียนไม่มีสาเหตุอื่น', infantOnly: true },
+  { code: 'APNEA', label: 'มีภาวะหยุดหายใจชั่วขณะ', infantOnly: true },
+  { code: 'BRADYCARDIA', label: 'หัวใจเต้นช้าผิดปกติ', infantOnly: true },
+  { code: 'LETHARGY', label: 'ซึมไม่มีสาเหตุอื่น', infantOnly: true },
+  { code: 'VOMITING', label: 'อาเจียนไม่มีสาเหตุอื่น', infantOnly: true },
 ];
 
 export const SYMPTOM_BY_CODE = new Map(SYMPTOMS.map((s) => [s.code, s]));
@@ -182,21 +180,21 @@ export function validateSymptoms(
   for (const entry of entries) {
     const def = SYMPTOM_BY_CODE.get(entry.code);
     if (!def) return 'มีอาการที่ไม่อยู่ในรายการ';
-    if (seen.has(entry.code)) return `เลือกข้อ ${def.no} ซ้ำ`;
+    if (seen.has(entry.code)) return `เลือก "${def.label}" ซ้ำ`;
     seen.add(entry.code);
 
     if (def.afterRemovalOnly && !catheterRemoved) {
-      return `ข้อ ${def.no} ใช้ได้เฉพาะผู้ป่วยที่ถอดสายสวนปัสสาวะแล้ว`;
+      return `"${def.label}" ใช้ได้เฉพาะผู้ป่วยที่ถอดสายสวนปัสสาวะแล้ว`;
     }
     if (!isDateString(entry.onsetDate)) {
-      return `กรุณากรอกวันที่เริ่มมีอาการของข้อ ${def.no}`;
+      return `กรุณากรอกวันที่เริ่มมีอาการของ "${def.label}"`;
     }
     if (entry.endDate !== null) {
       if (!isDateString(entry.endDate)) {
-        return `วันที่สิ้นสุดของข้อ ${def.no} ไม่ถูกต้อง`;
+        return `วันที่สิ้นสุดของ "${def.label}" ไม่ถูกต้อง`;
       }
       if (daysBetween(entry.onsetDate, entry.endDate) < 0) {
-        return `วันที่สิ้นสุดของข้อ ${def.no} ต้องไม่มาก่อนวันที่เริ่มมีอาการ`;
+        return `วันที่สิ้นสุดของ "${def.label}" ต้องไม่มาก่อนวันที่เริ่มมีอาการ`;
       }
     }
   }
@@ -229,7 +227,7 @@ export function validateDiagnosis(
     return 'วัน DOE ต้องไม่มาก่อนวันแรกของการนอนโรงพยาบาล';
   }
   if (!(input.catheterAtDoe in CATHETER_AT_DOE)) {
-    return 'กรุณาเลือกสถานะการคาสายสวนปัสสาวะ (ข้อ 10.2.1)';
+    return 'กรุณาเลือกสถานะการคาสายสวนปัสสาวะ';
   }
   if (!(input.ucResult in UC_RESULT)) return 'กรุณาเลือกผล U/C';
 
@@ -246,7 +244,7 @@ export function validateDiagnosis(
 
   if (input.organisms.length === 0) return 'กรุณาเลือกเชื้อที่พบอย่างน้อย 1 ชนิด';
   if (input.organisms.length > MAX_ORGANISMS) {
-    return `เลือกเชื้อได้ไม่เกิน ${MAX_ORGANISMS} ชนิดตามเกณฑ์ข้อ 10.2.3`;
+    return `เลือกเชื้อได้ไม่เกิน ${MAX_ORGANISMS} ชนิด`;
   }
   if (new Set(input.organisms).size !== input.organisms.length) {
     return 'เลือกเชื้อซ้ำกัน';

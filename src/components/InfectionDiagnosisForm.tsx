@@ -80,7 +80,7 @@ export function InfectionDiagnosisForm({
     setOrganisms((current) => {
       if (current.includes(name)) return current.filter((o) => o !== name);
       if (current.length >= MAX_ORGANISMS) {
-        setError(`เลือกเชื้อได้ไม่เกิน ${MAX_ORGANISMS} ชนิดตามเกณฑ์ข้อ 10.2.3`);
+        setError(`เลือกเชื้อได้ไม่เกิน ${MAX_ORGANISMS} ชนิด`);
         return current;
       }
       return [...current, name];
@@ -123,7 +123,7 @@ export function InfectionDiagnosisForm({
     setError(null);
 
     if (!isUti) {
-      setError('กรุณาระบุว่าเป็นการติดเชื้อระบบทางเดินปัสสาวะเพื่อกรอกข้อ 10.2');
+      setError('กรุณาระบุว่าเป็นการติดเชื้อระบบทางเดินปัสสาวะเพื่อกรอกรายละเอียด');
       return;
     }
 
@@ -184,7 +184,7 @@ export function InfectionDiagnosisForm({
       <section className="surface space-y-4 p-4">
         <div>
           <label htmlFor="admit-date" className="text-sm font-bold">
-            7. วันแรกของการนอนโรงพยาบาลในครั้งนี้ (Admit)
+            วันแรกของการนอนโรงพยาบาลในครั้งนี้ (Admit)
           </label>
           <input
             id="admit-date"
@@ -200,7 +200,7 @@ export function InfectionDiagnosisForm({
 
         <div>
           <label htmlFor="doe-date" className="text-sm font-bold">
-            8. วันแรกที่มีอาการแสดงการติดเชื้อ (DOE)
+            วันแรกที่มีอาการแสดงการติดเชื้อ (DOE)
           </label>
           <input
             id="doe-date"
@@ -220,7 +220,7 @@ export function InfectionDiagnosisForm({
 
         <div>
           <label htmlFor="admit-dx" className="text-sm font-bold">
-            9. DX. แรกรับ
+            DX. แรกรับ
           </label>
           <input
             id="admit-dx"
@@ -271,9 +271,9 @@ export function InfectionDiagnosisForm({
             className="mt-0.5 h-5 w-5 shrink-0"
           />
           <span className="text-sm font-bold">
-            10.2 การติดเชื้อระบบทางเดินปัสสาวะ
+            การติดเชื้อระบบทางเดินปัสสาวะ
             <span className="block font-normal" style={{ color: 'var(--muted)' }}>
-              เลือกข้อนี้เพื่อกรอกข้อย่อย 10.2.1–10.2.3
+              เลือกข้อนี้เพื่อกรอกรายละเอียดการติดเชื้อ
             </span>
           </span>
         </label>
@@ -283,7 +283,7 @@ export function InfectionDiagnosisForm({
             {/* 10.2.1 */}
             <fieldset>
               <legend className="text-sm font-bold">
-                10.2.1 ผู้ป่วยใส่สายสวนปัสสาวะ &gt; 2 วันปฏิทิน
+                ผู้ป่วยใส่สายสวนปัสสาวะ &gt; 2 วันปฏิทิน
               </legend>
               <p className="mt-1 text-[12.5px] leading-relaxed" style={{ color: 'var(--muted)' }}>
                 นับวันที่ใส่วันแรกเป็นวันที่ 1 ณ วันแรกที่เกิดการติดเชื้อ (DOE)
@@ -334,9 +334,7 @@ export function InfectionDiagnosisForm({
                     onChange={() => pickUcResult('NO_GROWTH')}
                     className="mt-0.5 h-5 w-5 shrink-0"
                   />
-                  <span className="text-[14px]">
-                    <strong>10.2.2</strong> {UC_RESULT.NO_GROWTH}
-                  </span>
+                  <span className="text-[14px]">{UC_RESULT.NO_GROWTH}</span>
                 </label>
 
                 <label
@@ -353,9 +351,7 @@ export function InfectionDiagnosisForm({
                     onChange={() => pickUcResult('SIGNIFICANT')}
                     className="mt-0.5 h-5 w-5 shrink-0"
                   />
-                  <span className="text-[14px]">
-                    <strong>10.2.3</strong> {UC_RESULT.SIGNIFICANT}
-                  </span>
+                  <span className="text-[14px]">{UC_RESULT.SIGNIFICANT}</span>
                 </label>
               </div>
             </fieldset>
@@ -365,7 +361,7 @@ export function InfectionDiagnosisForm({
                 className="rounded-lg px-3 py-2.5 text-[13px]"
                 style={{ background: 'var(--surface-2)', color: 'var(--muted)' }}
               >
-                ไม่พบเชื้อ — ตามแบบฟอร์มให้ข้ามไปข้อ 10.3 (ยังไม่ได้สร้างในระบบ)
+                ไม่พบเชื้อ — ตามแบบฟอร์มให้ข้ามไปหัวข้อถัดไป ซึ่งยังไม่ได้สร้างในระบบ
               </p>
             )}
 
@@ -437,7 +433,7 @@ export function InfectionDiagnosisForm({
                   className="mt-0.5 h-5 w-5 shrink-0"
                 />
                 <span className="text-sm font-bold">
-                  10.2.4 มีอาการแสดงการติดเชื้อ
+                  มีอาการแสดงการติดเชื้อ
                   <span className="block font-normal" style={{ color: 'var(--muted)' }}>
                     เลือกได้มากกว่า 1 ข้อ
                   </span>
@@ -451,7 +447,8 @@ export function InfectionDiagnosisForm({
                       className="mt-3 rounded-lg px-3 py-2.5 text-[12.5px] leading-relaxed"
                       style={{ background: 'var(--surface-2)', color: 'var(--muted)' }}
                     >
-                      ผู้ป่วยรายนี้ยังคาสายสวนอยู่ — ข้อ 3, 5 และ 7 จึงเลือกไม่ได้
+                      ผู้ป่วยรายนี้ยังคาสายสวนอยู่ — ปัสสาวะแสบขัด ปัสสาวะบ่อย
+                      และกดเจ็บบริเวณหัวหน่าว จึงเลือกไม่ได้
                       เพราะผู้ที่คาสายอาจมีอาการเหล่านี้โดยไม่ได้ติดเชื้อ
                       ใช้เกณฑ์เหล่านี้ได้เมื่อถอดสายสวนแล้วเท่านั้น
                     </p>
@@ -479,7 +476,7 @@ export function InfectionDiagnosisForm({
                               className="mt-0.5 h-5 w-5 shrink-0"
                             />
                             <span className="text-[14px]">
-                              {def.no}. {def.label}
+                              {def.label}
                               {def.infantOnly && (
                                 <span style={{ color: 'var(--muted)' }}>
                                   {' '}
@@ -493,7 +490,7 @@ export function InfectionDiagnosisForm({
                             <div className="mt-2 flex flex-wrap items-center gap-2 pl-8">
                               <input
                                 type="date"
-                                aria-label={`วันที่เริ่มมีอาการข้อ ${def.no}`}
+                                aria-label={`วันที่เริ่มมีอาการ ${def.label}`}
                                 value={entry.onsetDate}
                                 max={today}
                                 onChange={(e) =>
@@ -511,7 +508,7 @@ export function InfectionDiagnosisForm({
                               </span>
                               <input
                                 type="date"
-                                aria-label={`วันที่สิ้นสุดอาการข้อ ${def.no}`}
+                                aria-label={`วันที่สิ้นสุดอาการ ${def.label}`}
                                 value={entry.endDate ?? ''}
                                 min={entry.onsetDate || undefined}
                                 max={today}
@@ -536,7 +533,7 @@ export function InfectionDiagnosisForm({
             </div>
 
             <p className="text-[12.5px]" style={{ color: 'var(--muted)' }}>
-              ข้อ 10.2.5 และ 10.3 ยังไม่ได้สร้างในระบบ
+              หัวข้อถัดไปของแบบฟอร์มยังไม่ได้สร้างในระบบ
             </p>
           </div>
         )}
