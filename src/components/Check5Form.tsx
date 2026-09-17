@@ -36,6 +36,8 @@ interface Props {
   today: string;
   /** คุณวุฒิผู้ประเมิน — หน้าประเมินถามก่อนเปิดฟอร์มแล้ว จึงมีค่าเสมอ */
   nurseLevel: NurseLevel;
+  /** DOE ที่เคยบันทึกไว้ของผู้ป่วยรายนี้ — ล็อกไม่ให้แก้ */
+  lockedDoeDate?: string | null;
   /** โหมดบันทึกข้อมูลโครงการ; ทุกโหมดเปิดหน้าผลหลังบันทึกสำเร็จ */
   studyMode: 'BASELINE' | 'INTERVENTION';
   assessedThisShift: boolean;
@@ -51,6 +53,7 @@ export function Check5Form({
   episode,
   today,
   nurseLevel,
+  lockedDoeDate = null,
   assessedThisShift,
   children,
   preview = false,
@@ -61,7 +64,9 @@ export function Check5Form({
   const [symptoms, setSymptoms] = useState<SymptomEntry[]>([]);
   // null = ยังไม่ได้ตอบ — บังคับตอบเพื่อให้ "ไม่มีอาการ" เป็นคำตอบจริง ไม่ใช่การข้าม
   const [hasSymptoms, setHasSymptoms] = useState<boolean | null>(null);
-  const [details, setDetails] = useState<DiagnosisDetails>(EMPTY_DETAILS);
+  const [details, setDetails] = useState<DiagnosisDetails>(
+    lockedDoeDate ? { ...EMPTY_DETAILS, doeDate: lockedDoeDate } : EMPTY_DETAILS,
+  );
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [previewSaved, setPreviewSaved] = useState(false);
@@ -406,6 +411,7 @@ export function Check5Form({
               onChange={setDetails}
               today={today}
               insertDate={episode.insertDate}
+              lockedDoeDate={lockedDoeDate}
               onError={setError}
             />
           </div>

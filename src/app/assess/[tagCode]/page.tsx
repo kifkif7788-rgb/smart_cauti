@@ -86,6 +86,13 @@ export default async function AssessPage(props: PageProps<'/assess/[tagCode]'>) 
   const study = await getActiveStudy();
   const { start, end } = currentShiftWindow();
 
+  // DOE ลงได้ครั้งเดียว ถ้าเคยลงแล้วต้องส่งไปล็อกช่องในฟอร์ม
+  const { data: diagnosis } = await db()
+    .from('infection_diagnosis')
+    .select('doe_date')
+    .eq('episode_id', episode.episode_id)
+    .maybeSingle();
+
   const { count } = await db()
     .from('assessment')
     .select('assessment_id', { count: 'exact', head: true })
@@ -134,6 +141,7 @@ export default async function AssessPage(props: PageProps<'/assess/[tagCode]'>) 
         }}
         today={bangkokDateString()}
         nurseLevel={nurseLevel}
+        lockedDoeDate={diagnosis?.doe_date ?? null}
         studyMode={study.current_mode}
         assessedThisShift={(count ?? 0) > 0}
       >

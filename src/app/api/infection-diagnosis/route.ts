@@ -99,6 +99,21 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // DOE บันทึกได้ครั้งเดียว เพราะเป็นตัวกำหนดว่าเป็น HAI หรือ CI
+  // ถ้าแก้ย้อนหลังได้ การจำแนกของรายที่สรุปไปแล้วจะเปลี่ยนตาม
+  const { data: current } = await db()
+    .from('infection_diagnosis')
+    .select('doe_date')
+    .eq('episode_id', episodeId)
+    .maybeSingle();
+
+  if (current && current.doe_date !== input.doeDate) {
+    return Response.json(
+      { error: `วัน DOE บันทึกไว้แล้วเป็น ${current.doe_date} และแก้ไขไม่ได้` },
+      { status: 409 },
+    );
+  }
+
   const { data: saved, error } = await db()
     .from('infection_diagnosis')
     .upsert(

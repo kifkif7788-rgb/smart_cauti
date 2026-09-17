@@ -164,6 +164,7 @@ export function InfectionDiagnosisForm({
               onChange={setDetails}
               today={today}
               insertDate={insertDate}
+              lockedDoeDate={existing?.doeDate ?? null}
               onError={setError}
             />
 

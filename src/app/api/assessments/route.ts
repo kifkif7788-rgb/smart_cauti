@@ -171,13 +171,21 @@ export async function POST(request: NextRequest) {
   }
 
   if (diagnosis) {
+    // DOE ที่เคยบันทึกไว้ถือเป็นค่าตั้งต้นเสมอ ห้ามเขียนทับจากหน้าประเมิน
+    // ไม่ปฏิเสธทั้งคำขอ เพราะผลประเมิน CHECK 5 สำคัญกว่าและต้องไม่หายไป
+    const { data: currentDiagnosis } = await db()
+      .from('infection_diagnosis')
+      .select('doe_date')
+      .eq('episode_id', episodeId)
+      .maybeSingle();
+
     const { error: diagnosisError } = await db()
       .from('infection_diagnosis')
       .upsert(
         {
           episode_id: episodeId,
           admit_date: diagnosis.admitDate,
-          doe_date: diagnosis.doeDate,
+          doe_date: currentDiagnosis?.doe_date ?? diagnosis.doeDate,
           admit_dx: diagnosis.admitDx || null,
           catheter_at_doe: diagnosis.catheterAtDoe,
           uc_result: diagnosis.ucResult,

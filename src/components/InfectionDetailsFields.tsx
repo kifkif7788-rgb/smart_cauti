@@ -42,6 +42,8 @@ interface Props {
   today: string;
   /** วันที่ใส่สายของผู้ป่วยรายนี้ แสดงเป็นตัวช่วยตอนกรอก DOE */
   insertDate?: string;
+  /** DOE ที่บันทึกไว้แล้ว — ล็อกไม่ให้แก้ เพราะเป็นตัวกำหนดผล HAI/CI */
+  lockedDoeDate?: string | null;
   onError?: (message: string) => void;
 }
 
@@ -54,6 +56,7 @@ export function InfectionDetailsFields({
   onChange,
   today,
   insertDate,
+  lockedDoeDate = null,
   onError,
 }: Props) {
   const [organismQuery, setOrganismQuery] = useState('');
@@ -130,14 +133,22 @@ export function InfectionDetailsFields({
           value={value.doeDate}
           min={value.admitDate || undefined}
           max={today}
+          readOnly={lockedDoeDate !== null}
+          disabled={lockedDoeDate !== null}
           onChange={(e) => set({ doeDate: e.target.value })}
           className="mt-1.5 w-full rounded-lg border px-3.5 text-[16px]"
-          style={inputStyle}
+          style={{ ...inputStyle, opacity: lockedDoeDate !== null ? 0.6 : 1 }}
         />
-        {insertDate && (
+        {lockedDoeDate !== null ? (
           <p className="mt-1.5 text-[12.5px]" style={{ color: 'var(--muted)' }}>
-            วันที่ใส่สายสวนของรายนี้คือ {insertDate}
+            บันทึกไว้แล้วและแก้ไขไม่ได้ เพราะ DOE เป็นตัวกำหนดว่าเป็น HAI หรือ CI
           </p>
+        ) : (
+          insertDate && (
+            <p className="mt-1.5 text-[12.5px]" style={{ color: 'var(--muted)' }}>
+              วันที่ใส่สายสวนของรายนี้คือ {insertDate}
+            </p>
+          )
         )}
       </div>
 
