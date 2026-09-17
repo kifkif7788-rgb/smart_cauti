@@ -1,5 +1,5 @@
 import { DashboardView } from '@/components/DashboardView';
-import { foleyTrend } from '@/lib/dashboard';
+import { foleyTrend, passRateTrend } from '@/lib/dashboard';
 import { redirect } from 'next/navigation';
 import { getSession, canAlwaysSeeDashboard } from '@/lib/auth';
 import { getActiveStudy, nurseCanSeeDashboard } from '@/lib/study';
@@ -48,7 +48,9 @@ export default async function DashboardPage(props: PageProps<'/dashboard'>) {
   const correct = rows.filter(a => a.feedback === 'CORRECT_NOW').length;
   const review = rows.filter(a => a.feedback === 'REVIEW_REMOVAL' || a.feedback === 'CLOSED_BREACH').length;
   const percent = rows.length ? Math.round(pass / rows.length * 100) : null;
-  const colors = ['#2ebd87', '#389df4', '#ffbe2b', '#9770e4', '#ef7e9f'];
+  const colors = ['#2ebd87', '#389df4', '#ffbe2b', '#9770e4', '#ef7e9f', '#0b93a8', '#5a9316', '#d2701a'];
+  // ใช้การประเมินทุกครั้งในช่วง ไม่ใช่ rows ที่รายวันถูกยุบเหลือรายละแถว
+  const passTrend = passRateTrend(assessments ?? [], period);
   const dates = foleyTrend([]);
   const { data: history, error: historyError } = await db().from('episode')
     .select('insert_date, remove_date').in('ward_code', wardCodes)
@@ -58,5 +60,5 @@ export default async function DashboardPage(props: PageProps<'/dashboard'>) {
   const peak = Math.max(1, ...trend.map(p => p.count));
   const longStay = list.filter((e) => foleyDay(e.insert_date) > 3);
 
-  return <DashboardView period={period} wardCodes={wardCodes} list={list} rows={rows} pass={pass} correct={correct} review={review} percent={percent} colors={colors} trend={trend} peak={peak} longStay={longStay} historyError={Boolean(historyError)} />;
+  return <DashboardView period={period} passTrend={passTrend} wardCodes={wardCodes} list={list} rows={rows} pass={pass} correct={correct} review={review} percent={percent} colors={colors} trend={trend} peak={peak} longStay={longStay} historyError={Boolean(historyError)} />;
 }
