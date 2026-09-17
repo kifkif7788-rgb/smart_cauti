@@ -402,7 +402,7 @@ body > main, body > .assessment-page, body > header + main { max-width:540px; }
   background:linear-gradient(140deg,#4fb6f8,#1272d6);
   box-shadow:0 7px 18px #1272d640, inset 0 1px 0 #ffffff40;
 }
-.nurse-pill[data-level="PN"].is-active {
+.nurse-pill[data-level="NA"].is-active {
   background:linear-gradient(140deg,#41d8ac,#0a9b79);
   box-shadow:0 7px 18px #0a9b7940, inset 0 1px 0 #ffffff40;
 }

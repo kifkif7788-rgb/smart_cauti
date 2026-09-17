@@ -38,10 +38,10 @@ export async function POST(request: NextRequest) {
   }
 
   // รายการที่ค้างในคิวออฟไลน์ตั้งแต่ก่อนมีฟีเจอร์นี้ยังไม่มีค่า จึงรับ null ได้
-  // แต่ถ้าส่งมาแล้วต้องเป็น RN หรือ PN เท่านั้น
+  // แต่ถ้าส่งมาแล้วต้องเป็น RN หรือ NA เท่านั้น
   const nurseLevel = body.nurseLevel;
   if (nurseLevel != null && !isNurseLevel(nurseLevel)) {
-    return Response.json({ error: 'ระดับผู้ประเมินต้องเป็น RN หรือ PN' }, { status: 400 });
+    return Response.json({ error: 'ระดับผู้ประเมินต้องเป็น RN หรือ NA' }, { status: 400 });
   }
 
   // อาการและการวินิจฉัยมาจากหน้าประเมินรายวันเมื่อพยาบาลพบอาการแสดง
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     if (symptomProblem) return Response.json({ error: symptomProblem }, { status: 400 });
   }
 
-  // ผู้ช่วยพยาบาลบันทึกได้เฉพาะอาการ รายการจะค้างเป็น "รอวินิจฉัย" ให้ RN หรือ IC มาสรุป
+  // ผู้ช่วยเหลือคนไข้บันทึกได้เฉพาะอาการ รายการจะค้างเป็น "รอวินิจฉัย" ให้ RN หรือ IC มาสรุป
   if (diagnosis) {
     if (nurseLevel !== 'RN') {
       return Response.json(

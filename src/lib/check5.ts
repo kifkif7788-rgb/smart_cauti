@@ -17,7 +17,7 @@ export type Check5Key = (typeof CHECK5_KEYS)[number];
  */
 export const NURSE_LEVEL = {
   RN: 'RN · พยาบาลวิชาชีพ',
-  PN: 'PN · ผู้ช่วยพยาบาล',
+  NA: 'NA · ผู้ช่วยเหลือคนไข้',
 } as const;
 
 export type NurseLevel = keyof typeof NURSE_LEVEL;
@@ -27,7 +27,7 @@ export const NURSE_LEVEL_COOKIE = 'scg_nurse_level';
 export const NURSE_LEVEL_MAX_AGE = 8 * 60 * 60;
 
 export function isNurseLevel(value: unknown): value is NurseLevel {
-  return value === 'RN' || value === 'PN';
+  return value === 'RN' || value === 'NA';
 }
 
 /** คำตอบ 5 ข้อ — true = ผ่าน, false = ไม่ผ่าน */

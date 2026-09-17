@@ -7,7 +7,7 @@ export type StudyMode = 'BASELINE' | 'INTERVENTION';
 export type UserRoleDb = 'NURSE' | 'AUDITOR' | 'WARD_HEAD' | 'IC_NURSE' | 'ADMIN';
 export type ShiftDb = 'MORNING' | 'AFTERNOON' | 'NIGHT';
 export type SourceDb = 'NURSE' | 'AUDITOR';
-export type NurseLevelDb = 'RN' | 'PN';
+export type NurseLevelDb = 'RN' | 'NA';
 export type FeedbackDb = 'PASS' | 'CORRECT_NOW' | 'REVIEW_REMOVAL' | 'CLOSED_BREACH';
 export type ActionStatusDb = 'CORRECTED' | 'ESCALATED' | 'UNABLE';
 

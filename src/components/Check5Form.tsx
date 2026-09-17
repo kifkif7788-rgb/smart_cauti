@@ -59,6 +59,8 @@ export function Check5Form({
   const [answers, setAnswers] = useState<AnswerState>({});
   // มีอาการแสดงเมื่อไร จึงเปิดส่วนวินิจฉัยให้กรอกต่อในหน้าเดียวกัน
   const [symptoms, setSymptoms] = useState<SymptomEntry[]>([]);
+  // null = ยังไม่ได้ตอบ — บังคับตอบเพื่อให้ "ไม่มีอาการ" เป็นคำตอบจริง ไม่ใช่การข้าม
+  const [hasSymptoms, setHasSymptoms] = useState<boolean | null>(null);
   const [details, setDetails] = useState<DiagnosisDetails>(EMPTY_DETAILS);
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -77,11 +79,13 @@ export function Check5Form({
         answers?: AnswerState;
         notes?: string;
         symptoms?: SymptomEntry[];
+        hasSymptoms?: boolean | null;
         details?: DiagnosisDetails;
       };
       if (draft.answers) setAnswers(draft.answers);
       if (typeof draft.notes === 'string') setNotes(draft.notes);
       if (Array.isArray(draft.symptoms)) setSymptoms(draft.symptoms);
+      if (typeof draft.hasSymptoms === 'boolean') setHasSymptoms(draft.hasSymptoms);
       if (draft.details) setDetails(draft.details);
     } catch {
       // sessionStorage อาจถูกปิดในโหมดส่วนตัว — ไม่ใช่เรื่องร้ายแรง
@@ -92,12 +96,12 @@ export function Check5Form({
     try {
       sessionStorage.setItem(
         draftKey,
-        JSON.stringify({ answers, notes, symptoms, details }),
+        JSON.stringify({ answers, notes, symptoms, hasSymptoms, details }),
       );
     } catch {
       /* ไม่ทำอะไร */
     }
-  }, [answers, notes, symptoms, details, draftKey]);
+  }, [answers, notes, symptoms, hasSymptoms, details, draftKey]);
 
   const answeredCount = useMemo(
     () => CHECK5_ITEMS.filter((i) => answers[i.key] !== undefined).length,
@@ -123,6 +127,20 @@ export function Check5Form({
     }
 
 
+    if (hasSymptoms === null) {
+      setShowMissing(true);
+      setError('กรุณาระบุว่ามีอาการแสดงการติดเชื้อหรือไม่');
+      document
+        .getElementById('symptom-answer')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
+    if (hasSymptoms && symptoms.length === 0) {
+      setError('เลือกว่ามีอาการแสดง กรุณาระบุอย่างน้อย 1 ข้อ');
+      return;
+    }
+
     // ผู้ป่วยที่ยังคาสายอยู่เสมอในหน้านี้ เกณฑ์ที่ต้องถอดสายก่อนจึงไม่ถูกแสดงให้เลือก
     if (symptoms.length > 0) {
       const symptomProblem = validateSymptoms(symptoms, false);
@@ -132,7 +150,7 @@ export function Check5Form({
       }
     }
 
-    // การวินิจฉัยเป็นงานของพยาบาลวิชาชีพ ผู้ช่วยพยาบาลบันทึกได้เฉพาะอาการที่สังเกตเห็น
+    // การวินิจฉัยเป็นงานของพยาบาลวิชาชีพ ผู้ช่วยเหลือคนไข้บันทึกได้เฉพาะอาการที่สังเกตเห็น
     const diagnosis =
       nurseLevel === 'RN' && symptoms.length > 0 ? detailsToPayload(details) : null;
     if (diagnosis) {
@@ -316,23 +334,65 @@ export function Check5Form({
         </div>
 
         {/* ── อาการแสดงการติดเชื้อ ─────────────────────────────── */}
-        <div className="assessment-notes">
-          <div className="text-sm font-bold">อาการแสดงการติดเชื้อ</div>
+        <fieldset id="symptom-answer" className="assessment-notes">
+          <legend className="text-sm font-bold">อาการแสดงการติดเชื้อ</legend>
           <p className="mt-0.5 text-[12.5px]" style={{ color: 'var(--muted)' }}>
-            ถ้าไม่มีอาการ ข้ามข้อนี้ได้เลย · เลือกได้มากกว่า 1 ข้อ
+            ต้องตอบทุกครั้ง เพื่อแยกว่าตรวจแล้วไม่พบ กับยังไม่ได้ตรวจ
           </p>
-          <SymptomPicker
-            value={symptoms}
-            onChange={(next) => {
-              setSymptoms(next);
-              setError(null);
-            }}
-            defaultOnset={today}
-            today={today}
-            showAfterRemovalOnly={false}
-            catheterRemoved={false}
-          />
-        </div>
+
+          <div className="mt-2.5 space-y-2">
+            {[
+              { value: false, label: 'ไม่มีอาการผิดปกติ' },
+              { value: true, label: 'มีอาการแสดง' },
+            ].map((option) => (
+              <label
+                key={String(option.value)}
+                className="flex items-center gap-3 rounded-lg px-3 py-2.5"
+                style={{
+                  background:
+                    hasSymptoms === option.value ? 'var(--surface-2)' : 'transparent',
+                }}
+              >
+                <input
+                  type="radio"
+                  name="has-symptoms"
+                  checked={hasSymptoms === option.value}
+                  onChange={() => {
+                    setHasSymptoms(option.value);
+                    // ตอบว่าไม่มีอาการแล้วต้องไม่มีอาการค้างจากการเลือกครั้งก่อน
+                    if (!option.value) setSymptoms([]);
+                    setError(null);
+                  }}
+                  className="h-5 w-5 shrink-0"
+                />
+                <span className="text-[14px]">{option.label}</span>
+              </label>
+            ))}
+          </div>
+
+          {showMissing && hasSymptoms === null && (
+            <p
+              className="mt-1.5 text-[12.5px] font-semibold"
+              style={{ color: 'var(--review)' }}
+            >
+              ยังไม่ได้ตอบข้อนี้
+            </p>
+          )}
+
+          {hasSymptoms === true && (
+            <SymptomPicker
+              value={symptoms}
+              onChange={(next) => {
+                setSymptoms(next);
+                setError(null);
+              }}
+              defaultOnset={today}
+              today={today}
+              showAfterRemovalOnly={false}
+              catheterRemoved={false}
+            />
+          )}
+        </fieldset>
 
         {/* ── วินิจฉัยเพิ่มเติม — เฉพาะพยาบาลวิชาชีพ ───────────── */}
         {symptoms.length > 0 && nurseLevel === 'RN' && (
@@ -351,7 +411,7 @@ export function Check5Form({
           </div>
         )}
 
-        {symptoms.length > 0 && nurseLevel === 'PN' && (
+        {symptoms.length > 0 && nurseLevel === 'NA' && (
           <div
             className="rounded-xl border-l-4 px-4 py-3 text-[13px] leading-relaxed"
             style={{ background: 'var(--correct-bg)', borderColor: 'var(--correct)' }}
