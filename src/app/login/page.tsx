@@ -9,7 +9,7 @@ export default async function LoginPage() {
   return (
     <main className="login-page mx-auto flex min-h-dvh max-w-md flex-col justify-center px-5 py-10">
       <div className="mb-8 text-center">
-        <h1 className="sr-only">Smart CAUTI — เข้าสู่ระบบ</h1>
+        <h1 className="sr-only">Smart CAUTI Care — เข้าสู่ระบบ</h1>
         <Brand />
         <p className="mt-1 text-sm" style={{ color: 'var(--muted)' }}>
           ระบบบันทึกการปฏิบัติตาม CAUTI Bundle

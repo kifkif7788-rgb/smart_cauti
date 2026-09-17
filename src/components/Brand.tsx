@@ -22,7 +22,7 @@ export function ShieldMark() {
 }
 
 export function Brand({ compact = false }: { compact?: boolean }) {
-  return <div className={`brand ${compact ? 'brand-compact' : ''}`}><ShieldMark/><div className="brand-copy"><div className="brand-smart">Smart</div><div className="brand-guard">CAUTI</div><p>ระบบติดตามการดูแลสายสวนปัสสาวะ<br/>เพื่อป้องกัน CAUTI</p></div></div>;
+  return <div className={`brand ${compact ? 'brand-compact' : ''}`}><ShieldMark/><div className="brand-copy"><div className="brand-smart">Smart</div><div className="brand-guard">CAUTI Care</div><p>ระบบติดตามการดูแลสายสวนปัสสาวะ<br/>เพื่อป้องกัน CAUTI</p></div></div>;
 }
 
 export function CareNote({ compact = false }: { compact?: boolean }) {

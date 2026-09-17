@@ -26,7 +26,7 @@ const sarabun = localFont({
 });
 
 export const metadata: Metadata = {
-  title: 'Smart CAUTI',
+  title: 'Smart CAUTI Care',
   description: 'ระบบบันทึกและติดตามการปฏิบัติตาม CAUTI Maintenance Bundle',
   manifest: '/manifest.webmanifest',
   appleWebApp: {

@@ -15,7 +15,7 @@ export async function AppHeader({ title, backHref, subtitle }: Props) {
     <header className="app-header">
       <div className="app-header-inner">
         <Link href={backHref ?? '/'} aria-label={backHref && backHref !== '/' ? 'ย้อนกลับ' : 'หน้าหลัก'} className="header-home"><UiIcon name="home"/></Link>
-        <div className="header-copy"><h1>Smart CAUTI</h1>{(subtitle || title) && <p>{subtitle ?? title}</p>}</div>
+        <div className="header-copy"><h1>Smart CAUTI Care</h1>{(subtitle || title) && <p>{subtitle ?? title}</p>}</div>
         <details className="app-menu">
           <summary aria-label="เปิดเมนู"><UiIcon name="menu"/></summary>
           <nav aria-label="เมนูหลัก">
