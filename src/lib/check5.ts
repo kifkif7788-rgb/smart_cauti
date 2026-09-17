@@ -15,7 +15,7 @@ export const CHECK5_KEYS = [
   'below',
   'closed',
   'hand',
-  'flash',
+  'flush',
   'drain',
 ] as const;
 
@@ -23,7 +23,7 @@ export const CHECK5_KEYS = [
  * สามข้อท้ายเพิ่มทีหลัง การประเมินที่บันทึกไว้ก่อนหน้านั้นจึงไม่มีคำตอบของข้อเหล่านี้
  * ต้องแยกให้ออกระหว่าง "ตอบว่าไม่ผ่าน" กับ "ยังไม่เคยถาม"
  */
-export const CHECK5_ADDED_KEYS = ['hand', 'flash', 'drain'] as const;
+export const CHECK5_ADDED_KEYS = ['hand', 'flush', 'drain'] as const;
 export type Check5Key = (typeof CHECK5_KEYS)[number];
 
 /**
@@ -158,9 +158,9 @@ export const CHECK5_ITEMS: readonly Check5Item[] = [
     actionMessage: 'ล้างมือทันทีและทบทวนจังหวะที่ต้องล้างมือกับผู้ปฏิบัติ',
   },
   {
-    key: 'flash',
+    key: 'flush',
     order: 7,
-    label: 'FLASH',
+    label: 'FLUSH',
     labelTh: 'ทำความสะอาด',
     question: 'ทำความสะอาดอวัยวะสืบพันธุ์และรอบสายทุกวัน/หลังขับถ่าย แล้วซับให้แห้ง',
     hint: 'ทำทุกวันและหลังขับถ่ายทุกครั้ง ซับให้แห้งเพื่อลดการหมักหมม',

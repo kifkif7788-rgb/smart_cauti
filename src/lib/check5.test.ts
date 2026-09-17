@@ -14,7 +14,7 @@ const allPass: Check5Answers = {
   below: true,
   closed: true,
   hand: true,
-  flash: true,
+  flush: true,
   drain: true,
 };
 

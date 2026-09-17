@@ -73,7 +73,7 @@ export async function POST(
     below: assessment.below,
     closed: assessment.closed,
     hand: assessment.hand ?? undefined,
-    flash: assessment.flash ?? undefined,
+    flush: assessment.flush ?? undefined,
     drain: assessment.drain ?? undefined,
   });
   const failedKeys = new Set(result.failedItems.map((f) => f.key));

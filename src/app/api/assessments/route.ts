@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
   // การ sync อาจส่งรายการเดิมซ้ำเมื่อสัญญาณขาดกลางคัน
   const { data: existing } = await db()
     .from('assessment')
-    .select('assessment_id, assessed_at, need, fix, flow, below, closed, hand, flash, drain')
+    .select('assessment_id, assessed_at, need, fix, flow, below, closed, hand, flush, drain')
     .eq('client_uuid', clientUuid)
     .maybeSingle();
 
@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
         below: existing.below,
         closed: existing.closed,
         hand: existing.hand ?? undefined,
-        flash: existing.flash ?? undefined,
+        flush: existing.flush ?? undefined,
         drain: existing.drain ?? undefined,
       }),
       true,
@@ -145,7 +145,7 @@ export async function POST(request: NextRequest) {
       closed: answers.closed,
       // สามข้อที่เพิ่มทีหลัง — null เมื่อคำตอบมาจากคิวออฟไลน์ที่ยังไม่มีข้อเหล่านี้
       hand: answers.hand ?? null,
-      flash: answers.flash ?? null,
+      flush: answers.flush ?? null,
       drain: answers.drain ?? null,
       feedback: result.feedback,
       notes: typeof notes === 'string' && notes.trim() ? notes.trim() : null,
