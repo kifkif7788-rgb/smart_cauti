@@ -13,3 +13,16 @@ export async function readNurseLevelCookie(): Promise<NurseLevel | null> {
   const value = store.get(NURSE_LEVEL_COOKIE)?.value;
   return isNurseLevel(value) ? value : null;
 }
+
+/**
+ * คุณวุฒิผู้ประเมินที่จะใช้จริง
+ *
+ * บัญชีที่ระบุคุณวุฒิไว้แล้ว เช่น พยาบาลและผู้ช่วยเหลือคนไข้ ใช้ค่าจากบัญชีเลย
+ * ไม่ต้องเลือกซ้ำทุกเวรและเลือกผิดไม่ได้ ส่วนบัญชีที่ไม่ได้ระบุ เช่น แอดมินหรือ IC
+ * ยังใช้ค่าที่เลือกไว้เองได้ มิฉะนั้นจะประเมินไม่ได้เลย
+ */
+export async function resolveNurseLevel(
+  session: { nurseLevel: NurseLevel | null } | null,
+): Promise<NurseLevel | null> {
+  return session?.nurseLevel ?? (await readNurseLevelCookie());
+}

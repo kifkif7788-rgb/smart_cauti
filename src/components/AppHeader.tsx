@@ -21,7 +21,10 @@ export async function AppHeader({ title, backHref, subtitle }: Props) {
           <nav aria-label="เมนูหลัก">
             <Link href="/"><UiIcon name="home"/>หน้าหลัก</Link>
             {session?.role === 'ADMIN' && (
-              <Link href="/admin/tags"><UiIcon name="qr"/>สร้าง QR</Link>
+              <>
+                <Link href="/admin/tags"><UiIcon name="qr"/>สร้าง QR</Link>
+                <Link href="/admin/users"><UiIcon name="user"/>บัญชีผู้ใช้</Link>
+              </>
             )}
             <Link href="/scan"><UiIcon name="arrow"/>สแกน QR</Link>
             {session && canDiagnoseInfection(session.role) && (

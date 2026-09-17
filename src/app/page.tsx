@@ -5,7 +5,7 @@ import { getSession, canAlwaysSeeDashboard, canDiagnoseInfection } from '@/lib/a
 import { getActiveStudy, nurseCanSeeDashboard } from '@/lib/study';
 import { db } from '@/lib/db';
 import { awaitingDiagnosisEpisodes } from '@/lib/awaiting-diagnosis';
-import { readNurseLevelCookie } from '@/lib/nurse-level-cookie';
+import { resolveNurseLevel } from '@/lib/nurse-level-cookie';
 import { foleyDay, currentShift, SHIFT_LABEL_TH } from '@/lib/shift';
 import { maskHn } from '@/lib/hn';
 import { AppHeader } from '@/components/AppHeader';
@@ -30,7 +30,7 @@ export default async function HomePage() {
   const awaitingDiagnosis = await awaitingDiagnosisEpisodes(list.map((e) => e.episode_id));
   const awaitingList = list.filter((e) => awaitingDiagnosis.has(e.episode_id));
   const canDiagnose = canDiagnoseInfection(session.role);
-  const nurseLevel = await readNurseLevelCookie();
+  const nurseLevel = await resolveNurseLevel(session);
   const showDashboard =
     canAlwaysSeeDashboard(session.role) || nurseCanSeeDashboard(study.current_mode);
 
@@ -42,7 +42,7 @@ export default async function HomePage() {
         <HomeNotices />
         <OfflineQueueBadge />
 
-        <ScanHero showDashboard={showDashboard} nurseLevel={nurseLevel} />
+        <ScanHero showDashboard={showDashboard} nurseLevel={nurseLevel} canChooseLevel={session.nurseLevel === null} />
         <CareNote />
 
         {/* ── รอวินิจฉัย ────────────────────────────────────────── */}

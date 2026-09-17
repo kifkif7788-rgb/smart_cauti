@@ -36,6 +36,8 @@ interface Props {
   today: string;
   /** คุณวุฒิผู้ประเมิน — หน้าประเมินถามก่อนเปิดฟอร์มแล้ว จึงมีค่าเสมอ */
   nurseLevel: NurseLevel;
+  /** มาจากบัญชีผู้ใช้หรือจากที่เลือกเองที่หน้าแรก — เปลี่ยนคำอธิบายให้ตรง */
+  levelFromAccount?: boolean;
   /** DOE ที่เคยบันทึกไว้ของผู้ป่วยรายนี้ — ล็อกไม่ให้แก้ */
   lockedDoeDate?: string | null;
   /** โหมดบันทึกข้อมูลโครงการ; ทุกโหมดเปิดหน้าผลหลังบันทึกสำเร็จ */
@@ -53,6 +55,7 @@ export function Check5Form({
   episode,
   today,
   nurseLevel,
+  levelFromAccount = false,
   lockedDoeDate = null,
   assessedThisShift,
   children,
@@ -334,7 +337,7 @@ export function Check5Form({
             {NURSE_LEVEL[nurseLevel]}
           </div>
           <p className="mt-0.5 text-[12.5px]" style={{ color: 'var(--muted)' }}>
-            เปลี่ยนได้ที่หน้าแรก
+            {levelFromAccount ? 'กำหนดตามบัญชีผู้ใช้' : 'เปลี่ยนได้ที่หน้าแรก'}
           </p>
         </div>
 

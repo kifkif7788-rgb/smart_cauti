@@ -29,6 +29,8 @@ export type AppUserRow = {
   full_name: string;
   role: UserRoleDb;
   ward_codes: string[];
+  /** คุณวุฒิผู้ประเมินที่ผูกกับบัญชี — null เมื่อบัญชีนั้นไม่ได้ลงมือประเมิน */
+  nurse_level: NurseLevelDb | null;
   pin_hash: string;
   line_user_id: string | null;
   is_active: boolean;

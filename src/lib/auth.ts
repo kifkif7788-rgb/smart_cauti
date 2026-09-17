@@ -28,6 +28,7 @@ export type { UserRole } from './auth-roles';
 export { canAlwaysSeeDashboard, canDiagnoseInfection, sourceForRole } from './auth-roles';
 
 import type { UserRole } from './auth-roles';
+import { isNurseLevel, type NurseLevel } from './check5';
 
 export interface SessionUser {
   userId: string;
@@ -35,6 +36,8 @@ export interface SessionUser {
   fullName: string;
   role: UserRole;
   wardCodes: string[];
+  /** คุณวุฒิที่ผูกกับบัญชี — null สำหรับบัญชีที่ไม่ได้ระบุไว้ เช่น แอดมิน */
+  nurseLevel: NurseLevel | null;
 }
 
 // ── PIN hashing ──────────────────────────────────────────────────────
@@ -85,6 +88,7 @@ export async function createSessionToken(user: SessionUser): Promise<string> {
     fullName: user.fullName,
     role: user.role,
     wardCodes: user.wardCodes,
+    nurseLevel: user.nurseLevel,
   })
     .setProtectedHeader({ alg: 'HS256' })
     .setSubject(user.userId)
@@ -105,6 +109,7 @@ export async function readSessionToken(token: string): Promise<SessionUser | nul
       fullName: String(payload.fullName ?? ''),
       role: payload.role as UserRole,
       wardCodes: Array.isArray(payload.wardCodes) ? (payload.wardCodes as string[]) : [],
+      nurseLevel: isNurseLevel(payload.nurseLevel) ? payload.nurseLevel : null,
     };
   } catch {
     return null;

@@ -70,6 +70,7 @@ async function login(request: NextRequest) {
     fullName: user.full_name,
     role: user.role,
     wardCodes: user.ward_codes,
+    nurseLevel: user.nurse_level,
   };
 
   await setSessionCookie(await createSessionToken(session));

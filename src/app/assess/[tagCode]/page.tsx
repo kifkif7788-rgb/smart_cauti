@@ -17,7 +17,7 @@ import { EpisodeActions } from '@/components/EpisodeActions';
 import { InvalidTag } from '@/components/InvalidTag';
 import { ScanRequired } from '@/components/ScanRequired';
 import { hasScanProof } from '@/lib/scan-proof';
-import { readNurseLevelCookie } from '@/lib/nurse-level-cookie';
+import { resolveNurseLevel } from '@/lib/nurse-level-cookie';
 import { NurseLevelSwitch } from '@/components/NurseLevelSwitch';
 
 export default async function AssessPage(props: PageProps<'/assess/[tagCode]'>) {
@@ -56,7 +56,7 @@ export default async function AssessPage(props: PageProps<'/assess/[tagCode]'>) 
 
   // สแกนเข้ามาโดยไม่ผ่านหน้าแรกจะยังไม่มีคุณวุฒิผู้ประเมิน ต้องถามก่อนเปิดแบบประเมิน
   // ถามที่นี่ก่อน writeAudit เพราะยังไม่ได้เปิดดูข้อมูลผู้ป่วยจริง
-  const nurseLevel = await readNurseLevelCookie();
+  const nurseLevel = await resolveNurseLevel(session);
   if (!nurseLevel) {
     return (
       <>
@@ -141,6 +141,7 @@ export default async function AssessPage(props: PageProps<'/assess/[tagCode]'>) 
         }}
         today={bangkokDateString()}
         nurseLevel={nurseLevel}
+        levelFromAccount={session.nurseLevel !== null}
         lockedDoeDate={diagnosis?.doe_date ?? null}
         studyMode={study.current_mode}
         assessedThisShift={(count ?? 0) > 0}
