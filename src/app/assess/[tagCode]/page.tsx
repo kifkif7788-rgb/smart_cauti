@@ -1,6 +1,11 @@
 import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
-import { getSession, sourceForRole, canDiagnoseInfection } from '@/lib/auth';
+import {
+  getSession,
+  sourceForRole,
+  canDiagnoseInfection,
+  needsNurseLevel,
+} from '@/lib/auth';
 import { getActiveStudy } from '@/lib/study';
 import { db, writeAudit } from '@/lib/db';
 import {
@@ -57,7 +62,7 @@ export default async function AssessPage(props: PageProps<'/assess/[tagCode]'>) 
   // สแกนเข้ามาโดยไม่ผ่านหน้าแรกจะยังไม่มีคุณวุฒิผู้ประเมิน ต้องถามก่อนเปิดแบบประเมิน
   // ถามที่นี่ก่อน writeAudit เพราะยังไม่ได้เปิดดูข้อมูลผู้ป่วยจริง
   const nurseLevel = await resolveNurseLevel(session);
-  if (!nurseLevel) {
+  if (!nurseLevel && needsNurseLevel(session.role)) {
     return (
       <>
         <AppHeader title="ก่อนเริ่มประเมิน" backHref="/" subtitle={`เตียง ${episode.bed_no}`} />
@@ -142,6 +147,7 @@ export default async function AssessPage(props: PageProps<'/assess/[tagCode]'>) 
         today={bangkokDateString()}
         nurseLevel={nurseLevel}
         levelFromAccount={session.nurseLevel !== null}
+        roleLabel={session.role === 'ADMIN' ? 'ผู้ดูแลระบบ' : undefined}
         lockedDoeDate={diagnosis?.doe_date ?? null}
         studyMode={study.current_mode}
         assessedThisShift={(count ?? 0) > 0}

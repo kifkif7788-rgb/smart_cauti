@@ -26,6 +26,17 @@ export function canDiagnoseInfection(role: UserRole): boolean {
   return DIAGNOSIS_ROLES.includes(role);
 }
 
+/**
+ * บัญชีที่ต้องมีคุณวุฒิ RN หรือ NA ก่อนจึงจะประเมินได้
+ *
+ * ผู้ดูแลระบบไม่ใช่บุคลากรพยาบาล จึงไม่มีคุณวุฒิให้ผูกกับบัญชีและไม่ควรถูก
+ * นับรวมในสถิติที่เทียบ RN กับ NA การประเมินของบัญชีนี้บันทึกโดยไม่มีคุณวุฒิ
+ * แต่ยังทำได้ทันทีโดยไม่ต้องเลือกอะไรก่อน
+ */
+export function needsNurseLevel(role: UserRole): boolean {
+  return role !== 'ADMIN';
+}
+
 /** แหล่งข้อมูลของการประเมิน — แยกข้อมูลผู้ประเมินออกจากพยาบาลเพื่อวิเคราะห์ */
 export function sourceForRole(role: UserRole): 'NURSE' | 'AUDITOR' {
   return role === 'AUDITOR' ? 'AUDITOR' : 'NURSE';

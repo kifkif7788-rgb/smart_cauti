@@ -9,7 +9,7 @@
  * เพื่อไม่ให้พยาบาลเวรถัดไปใช้ session ของเวรก่อนต่อบนเครื่องที่ใช้ร่วมกัน
  */
 
-import { scrypt, randomBytes, timingSafeEqual } from 'node:crypto';
+import { scrypt, randomBytes, randomInt, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
@@ -25,10 +25,16 @@ const SESSION_HOURS = 8;
 const KEY_LENGTH = 32;
 
 export type { UserRole } from './auth-roles';
-export { canAlwaysSeeDashboard, canDiagnoseInfection, sourceForRole } from './auth-roles';
+export {
+  canAlwaysSeeDashboard,
+  canDiagnoseInfection,
+  needsNurseLevel,
+  sourceForRole,
+} from './auth-roles';
 
 import type { UserRole } from './auth-roles';
 import { isNurseLevel, type NurseLevel } from './check5';
+import { isWeakPin, PIN_LENGTH } from './pin';
 
 export interface SessionUser {
   userId: string;
@@ -38,6 +44,8 @@ export interface SessionUser {
   wardCodes: string[];
   /** คุณวุฒิที่ผูกกับบัญชี — null สำหรับบัญชีที่ไม่ได้ระบุไว้ เช่น แอดมิน */
   nurseLevel: NurseLevel | null;
+  /** ยังใช้ PIN ที่ระบบหรือแอดมินตั้งให้ ต้องตั้งใหม่ก่อนจึงจะใช้งานส่วนอื่นได้ */
+  mustChangePin: boolean;
 }
 
 // ── PIN hashing ──────────────────────────────────────────────────────
@@ -65,9 +73,20 @@ export async function verifyPin(pin: string, stored: string): Promise<boolean> {
   return timingSafeEqual(actual, expected);
 }
 
-/** PIN ต้องเป็นตัวเลข 6 หลักพอดี */
-export function isValidPinFormat(pin: unknown): pin is string {
-  return typeof pin === 'string' && /^\d{6}$/.test(pin);
+/** กฎของ PIN อยู่ใน pin.ts เพื่อให้ทดสอบได้โดยไม่ต้องมี node:crypto */
+export { isValidPinFormat, isWeakPin, PIN_LENGTH } from './pin';
+
+/**
+ * PIN สุ่มสำหรับให้แอดมินตั้งให้ใหม่เมื่อพนักงานลืม
+ *
+ * ใช้ randomInt ซึ่งเป็น CSPRNG ไม่ใช่ Math.random และวนจนกว่าจะได้ชุดที่ไม่เดาง่าย
+ * เจ้าของบัญชีต้องเปลี่ยนเองอีกครั้งอยู่ดี PIN นี้จึงมีอายุแค่ช่วงเข้าระบบครั้งแรก
+ */
+export function generatePin(): string {
+  for (;;) {
+    const pin = String(randomInt(0, 10 ** PIN_LENGTH)).padStart(PIN_LENGTH, '0');
+    if (!isWeakPin(pin)) return pin;
+  }
 }
 
 // ── JWT session ──────────────────────────────────────────────────────
@@ -89,6 +108,7 @@ export async function createSessionToken(user: SessionUser): Promise<string> {
     role: user.role,
     wardCodes: user.wardCodes,
     nurseLevel: user.nurseLevel,
+    mustChangePin: user.mustChangePin,
   })
     .setProtectedHeader({ alg: 'HS256' })
     .setSubject(user.userId)
@@ -110,6 +130,7 @@ export async function readSessionToken(token: string): Promise<SessionUser | nul
       role: payload.role as UserRole,
       wardCodes: Array.isArray(payload.wardCodes) ? (payload.wardCodes as string[]) : [],
       nurseLevel: isNurseLevel(payload.nurseLevel) ? payload.nurseLevel : null,
+      mustChangePin: payload.mustChangePin === true,
     };
   } catch {
     return null;

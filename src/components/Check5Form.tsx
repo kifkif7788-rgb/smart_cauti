@@ -35,9 +35,12 @@ interface Props {
   /** วันที่ตามเวลาไทย ใช้เป็นเพดานของช่องวันที่ในส่วนวินิจฉัย */
   today: string;
   /** คุณวุฒิผู้ประเมิน — หน้าประเมินถามก่อนเปิดฟอร์มแล้ว จึงมีค่าเสมอ */
-  nurseLevel: NurseLevel;
+  /** null = บัญชีที่ไม่ใช่บุคลากรพยาบาล เช่น ผู้ดูแลระบบ ซึ่งไม่มีคุณวุฒิให้บันทึก */
+  nurseLevel: NurseLevel | null;
   /** มาจากบัญชีผู้ใช้หรือจากที่เลือกเองที่หน้าแรก — เปลี่ยนคำอธิบายให้ตรง */
   levelFromAccount?: boolean;
+  /** ชื่อที่จะแสดงแทนคุณวุฒิ เมื่อบัญชีนั้นไม่มีคุณวุฒิผู้ประเมิน */
+  roleLabel?: string;
   /** DOE ที่เคยบันทึกไว้ของผู้ป่วยรายนี้ — ล็อกไม่ให้แก้ */
   lockedDoeDate?: string | null;
   /** โหมดบันทึกข้อมูลโครงการ; ทุกโหมดเปิดหน้าผลหลังบันทึกสำเร็จ */
@@ -56,6 +59,7 @@ export function Check5Form({
   today,
   nurseLevel,
   levelFromAccount = false,
+  roleLabel,
   lockedDoeDate = null,
   assessedThisShift,
   children,
@@ -334,10 +338,14 @@ export function Check5Form({
         <div id="nurse-level" className="assessment-notes">
           <div className="text-sm font-bold">ผู้ประเมิน</div>
           <div className="mt-1.5 text-[15px] font-bold" style={{ color: 'var(--primary)' }}>
-            {NURSE_LEVEL[nurseLevel]}
+            {nurseLevel ? NURSE_LEVEL[nurseLevel] : (roleLabel ?? 'ไม่ระบุคุณวุฒิ')}
           </div>
           <p className="mt-0.5 text-[12.5px]" style={{ color: 'var(--muted)' }}>
-            {levelFromAccount ? 'กำหนดตามบัญชีผู้ใช้' : 'เปลี่ยนได้ที่หน้าแรก'}
+            {nurseLevel === null
+              ? 'บัญชีนี้ไม่ใช่บุคลากรพยาบาล จึงไม่ถูกนับรวมในสถิติ RN/NA'
+              : levelFromAccount
+                ? 'กำหนดตามบัญชีผู้ใช้'
+                : 'เปลี่ยนได้ที่หน้าแรก'}
           </p>
         </div>
 
@@ -420,7 +428,7 @@ export function Check5Form({
           </div>
         )}
 
-        {symptoms.length > 0 && nurseLevel === 'NA' && (
+        {symptoms.length > 0 && nurseLevel !== 'RN' && (
           <div
             className="rounded-xl border-l-4 px-4 py-3 text-[13px] leading-relaxed"
             style={{ background: 'var(--correct-bg)', borderColor: 'var(--correct)' }}

@@ -3,6 +3,7 @@ import { getSession } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { NURSE_LEVEL } from '@/lib/check5';
 import { AppHeader } from '@/components/AppHeader';
+import { ResetPinButton } from '@/components/ResetPinButton';
 import type { NurseLevelDb, UserRoleDb } from '@/types/database';
 
 const ROLE_LABEL: Record<UserRoleDb, string> = {
@@ -26,11 +27,14 @@ export default async function AdminUsersPage() {
 
   const { data: users } = await db()
     .from('app_user')
-    .select('user_id, employee_id, full_name, role, ward_codes, nurse_level, is_active')
+    .select(
+      'user_id, employee_id, full_name, role, ward_codes, nurse_level, is_active, must_change_pin, pin_changed_at',
+    )
     .order('employee_id');
 
   const list = users ?? [];
   const active = list.filter((u) => u.is_active).length;
+  const starterPin = list.filter((u) => u.must_change_pin).length;
 
   return (
     <>
@@ -39,10 +43,20 @@ export default async function AdminUsersPage() {
         <p className="text-[13px]" style={{ color: 'var(--muted)' }}>
           ทั้งหมด {list.length} บัญชี · ใช้งานอยู่ {active} บัญชี
         </p>
-        <p className="mt-1 text-[12.5px]" style={{ color: 'var(--muted)' }}>
-          ระบบเก็บ PIN เป็นค่าที่เข้ารหัสแล้วเท่านั้น หน้านี้จึงดู PIN ไม่ได้
-          หากพนักงานลืม PIN ต้องตั้งใหม่ให้
+        <p className="mt-1 text-[12.5px] leading-relaxed" style={{ color: 'var(--muted)' }}>
+          ระบบเก็บ PIN เป็นค่าที่เข้ารหัสแล้วเท่านั้น หน้านี้จึงดู PIN เดิมไม่ได้
+          หากพนักงานลืม PIN ให้กดตั้ง PIN ใหม่ ระบบจะสุ่มให้และบังคับให้เจ้าตัวเปลี่ยนเองเมื่อเข้าระบบ
         </p>
+
+        {starterPin > 0 && (
+          <p
+            className="mt-3 rounded-lg px-3 py-2.5 text-[13px] leading-relaxed font-semibold"
+            style={{ background: 'var(--correct-bg)', color: 'var(--correct)' }}
+          >
+            {starterPin} บัญชียังใช้ PIN ที่ระบบตั้งให้ ระบบจะบังคับให้ตั้ง PIN ใหม่
+            เมื่อเข้าระบบครั้งแรก จนกว่าจะตั้งแล้วจึงใช้งานส่วนอื่นได้
+          </p>
+        )}
 
         {list.length === 0 ? (
           <p
@@ -56,9 +70,10 @@ export default async function AdminUsersPage() {
             {list.map((user) => (
               <li key={user.user_id}>
                 <div
-                  className="surface flex items-center gap-3 px-4 py-3"
+                  className="surface px-4 py-3"
                   style={{ opacity: user.is_active ? 1 : 0.55 }}
                 >
+                  <div className="flex items-center gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="truncate font-bold">
                       {user.employee_id}
@@ -86,6 +101,16 @@ export default async function AdminUsersPage() {
                       {user.nurse_level}
                     </span>
                   )}
+                  </div>
+
+                  <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 border-t pt-2" style={{ borderColor: 'var(--border)' }}>
+                    <span className="min-w-0 flex-1 text-[12px]" style={{ color: user.must_change_pin ? 'var(--correct)' : 'var(--muted)' }}>
+                      {user.must_change_pin
+                        ? 'ยังใช้ PIN ที่ระบบตั้งให้ — ต้องตั้งใหม่เมื่อเข้าระบบ'
+                        : 'ตั้ง PIN เองแล้ว'}
+                    </span>
+                    <ResetPinButton userId={user.user_id} employeeId={user.employee_id} />
+                  </div>
                 </div>
               </li>
             ))}

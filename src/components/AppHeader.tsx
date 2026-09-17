@@ -31,6 +31,7 @@ export async function AppHeader({ title, backHref, subtitle }: Props) {
               <Link href="/infection"><UiIcon name="shield"/>แบบวินิจฉัยการติดเชื้อ</Link>
             )}
             <Link href="/learn"><UiIcon name="book"/>สื่อการเรียนรู้</Link>
+            {session && <Link href="/pin"><UiIcon name="closed"/>เปลี่ยน PIN</Link>}
             <LogoutButton />
           </nav>
         </details>

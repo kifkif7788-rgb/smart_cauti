@@ -1,7 +1,12 @@
 import { ScanHero, CareNote } from '@/components/Brand';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { getSession, canAlwaysSeeDashboard, canDiagnoseInfection } from '@/lib/auth';
+import {
+  getSession,
+  canAlwaysSeeDashboard,
+  canDiagnoseInfection,
+  needsNurseLevel,
+} from '@/lib/auth';
 import { getActiveStudy, nurseCanSeeDashboard } from '@/lib/study';
 import { db } from '@/lib/db';
 import { awaitingDiagnosisEpisodes } from '@/lib/awaiting-diagnosis';
@@ -42,7 +47,11 @@ export default async function HomePage() {
         <HomeNotices />
         <OfflineQueueBadge />
 
-        <ScanHero showDashboard={showDashboard} nurseLevel={nurseLevel} canChooseLevel={session.nurseLevel === null} />
+        <ScanHero
+          showDashboard={showDashboard}
+          nurseLevel={nurseLevel}
+          canChooseLevel={session.nurseLevel === null && needsNurseLevel(session.role)}
+        />
         <CareNote />
 
         {/* ── รอวินิจฉัย ────────────────────────────────────────── */}

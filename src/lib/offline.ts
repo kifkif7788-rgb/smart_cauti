@@ -29,7 +29,8 @@ export interface QueuedAssessment {
   clientUuid: string;
   episodeId: string;
   answers: Record<Check5Key, boolean>;
-  nurseLevel: NurseLevel;
+  /** null = ผู้บันทึกไม่ใช่บุคลากรพยาบาล เช่น ผู้ดูแลระบบ */
+  nurseLevel: NurseLevel | null;
   /** อาการแสดงที่พบตอนประเมิน — ว่างได้เมื่อผู้ป่วยไม่มีอาการ */
   symptoms: SymptomEntry[];
   /** กรอกต่อเมื่อมีอาการเท่านั้น */
