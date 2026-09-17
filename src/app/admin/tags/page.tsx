@@ -103,7 +103,7 @@ export default async function TagSheetPage() {
                     dangerouslySetInnerHTML={{ __html: card.svg }} />
                 </div>
                 <div className={styles.code}>{card.tagCode}</div>
-                <div className={styles.cardFooter}><strong>สแกนเพื่อประเมิน CHECK 5</strong><span>เช็กทุกวัน เพื่อความปลอดภัยของผู้ป่วย</span></div>
+                <div className={styles.cardFooter}><strong>สแกนเพื่อประเมิน CHECK 8</strong><span>เช็กทุกวัน เพื่อความปลอดภัยของผู้ป่วย</span></div>
               </article>
             ))}
           </div>

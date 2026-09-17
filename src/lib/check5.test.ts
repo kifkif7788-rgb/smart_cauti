@@ -13,6 +13,9 @@ const allPass: Check5Answers = {
   flow: true,
   below: true,
   closed: true,
+  hand: true,
+  flash: true,
+  drain: true,
 };
 
 const fail = (...keys: Array<keyof Check5Answers>): Check5Answers => {
@@ -21,10 +24,10 @@ const fail = (...keys: Array<keyof Check5Answers>): Check5Answers => {
   return answers;
 };
 
-describe('นิยาม CHECK 5', () => {
-  it('มีครบ 5 ข้อ เรียงลำดับ 1–5', () => {
-    expect(CHECK5_ITEMS).toHaveLength(5);
-    expect(CHECK5_ITEMS.map((i) => i.order)).toEqual([1, 2, 3, 4, 5]);
+describe('นิยาม CHECK 8', () => {
+  it('มีครบ 8 ข้อ เรียงลำดับ 1–8', () => {
+    expect(CHECK5_ITEMS).toHaveLength(8);
+    expect(CHECK5_ITEMS.map((i) => i.order)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
     expect(CHECK5_ITEMS.map((i) => i.key)).toEqual([...CHECK5_KEYS]);
   });
 
@@ -128,5 +131,32 @@ describe('parseAnswers', () => {
     const parsed = parseAnswers({ ...allPass, hn: '1234567' });
     expect(parsed).toEqual(allPass);
     expect(parsed && 'hn' in parsed).toBe(false);
+  });
+});
+
+describe('ข้อที่เพิ่มทีหลัง', () => {
+  const legacy = { need: true, fix: true, flow: true, below: true, closed: true };
+
+  it('คำตอบเก่าที่มีแค่ 5 ข้อยังใช้ได้ ไม่ถูกทิ้ง', () => {
+    // รายการที่ค้างในคิวออฟไลน์ตั้งแต่ก่อนเพิ่มข้อต้องซิงก์ขึ้นมาได้
+    expect(parseAnswers(legacy)).toEqual(legacy);
+  });
+
+  it('ข้อที่ไม่ได้ถามไม่นับว่าตก', () => {
+    const result = evaluateCheck5(legacy);
+    expect(result.allPass).toBe(true);
+    expect(result.failedItems).toHaveLength(0);
+  });
+
+  it('ข้อใหม่ที่ตอบว่าไม่ผ่านนับว่าตกและแก้ได้ทันที', () => {
+    const result = evaluateCheck5({ ...allPass, hand: false });
+    expect(result.allPass).toBe(false);
+    expect(result.failedItems.map((f) => f.key)).toEqual(['hand']);
+    expect(result.feedback).toBe('CORRECT_NOW');
+    expect(result.correctableKeys).toContain('hand');
+  });
+
+  it('ห้าข้อแรกยังบังคับต้องมีครบ', () => {
+    expect(parseAnswers({ ...legacy, closed: undefined })).toBeNull();
   });
 });

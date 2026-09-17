@@ -91,6 +91,10 @@ export type AssessmentRow = {
   flow: boolean;
   below: boolean;
   closed: boolean;
+  /** สามข้อที่เพิ่มทีหลัง — null คือการประเมินครั้งนั้นยังไม่มีข้อนี้ */
+  hand: boolean | null;
+  flash: boolean | null;
+  drain: boolean | null;
   all_pass: boolean;
   feedback: FeedbackDb;
   notes: string | null;

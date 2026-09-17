@@ -10,7 +10,7 @@ import { maskHn } from '@/lib/hn';
  * ตรวจป้าย QR ประจำเตียงแล้วบอกว่าควรพาไปหน้าไหน
  *
  *   vacant   → เตียงว่าง ไปหน้าลงทะเบียนผู้ป่วย (กรอก HN)
- *   occupied → มีผู้ป่วยคาสายอยู่ ไปหน้าประเมิน CHECK 5
+ *   occupied → มีผู้ป่วยคาสายอยู่ ไปหน้าประเมิน CHECK 8
  *   invalid  → ป้ายปลอมหรือลายเซ็นไม่ตรง
  */
 export async function GET(request: NextRequest, ctx: RouteContext<'/api/tags/[tagCode]'>) {

@@ -127,7 +127,7 @@ body {
 .btn-primary:active:not(:disabled) { background: var(--primary-d); }
 .btn-primary:disabled { opacity: .45; }
 
-/* ปุ่มตอบ CHECK 5 — touch target 48px ขึ้นไป เพราะพยาบาลอาจสวมถุงมือ */
+/* ปุ่มตอบ CHECK 8 — touch target 48px ขึ้นไป เพราะพยาบาลอาจสวมถุงมือ */
 .answer-btn {
   min-height: 48px;
   min-width: 72px;
@@ -255,6 +255,9 @@ body > main, body > .assessment-page, body > header + main { max-width:540px; }
 [data-item="flow"] { --item-bg:#fff0c8; --item-accent:#eba300; --item-title:#ac6100; --item-light:#ffca43; }
 [data-item="below"] { --item-bg:#e7dcff; --item-accent:#8855d9; --item-light:#b491ef; }
 [data-item="closed"] { --item-bg:#ffe0e9; --item-accent:#e94e7b; --item-light:#ff94af; }
+[data-item="hand"] { --item-bg:#d9f4f7; --item-accent:#0b93a8; --item-light:#48c8da; }
+[data-item="flash"] { --item-bg:#e6f3d9; --item-accent:#5a9316; --item-light:#93cc4f; }
+[data-item="drain"] { --item-bg:#ffe6d4; --item-accent:#d2701a; --item-light:#ffa963; }
 .bundle-icon { display:inline-grid; place-items:center; flex-shrink:0; width:45px; height:45px; border:1.5px solid white; border-radius:50%; color:white; background:linear-gradient(135deg,var(--item-light),var(--item-accent) 75%); box-shadow:0 0 0 3px #ffffff40,inset 0 1px 2px #ffffff65; }
 .bundle-icon svg { width:29px; height:29px; }
 .check-card { display:grid; grid-template-columns:minmax(0,1fr) 106px; align-items:center; gap:0 9px; padding:11px 10px 5px; border:1px solid transparent; border-radius:17px; background:linear-gradient(110deg,color-mix(in srgb,var(--item-bg) 80%,var(--surface)),var(--item-bg)); }

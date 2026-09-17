@@ -39,12 +39,12 @@ export default async function LearnPage() {
           style={{ background: 'var(--surface-2)', borderColor: 'var(--primary)' }}
         >
           <strong>ขอบเขตของวิดีโอนี้</strong> — ครอบคลุมการใส่สายและ aseptic technique
-          ซึ่งเป็นคนละส่วนกับ CHECK 5 ที่ประเมินการดูแลระหว่างคาสาย
+          ซึ่งเป็นคนละส่วนกับ CHECK 8 ที่ประเมินการดูแลระหว่างคาสาย
           การป้องกัน CAUTI ต้องอาศัยทั้งสองส่วนร่วมกัน
         </div>
 
-        {/* ── คู่มือย่อ CHECK 5 ────────────────────────────────── */}
-        <h2 className="mt-6 mb-2 text-base font-extrabold">คู่มือย่อ CHECK 5</h2>
+        {/* ── คู่มือย่อ CHECK 8 ────────────────────────────────── */}
+        <h2 className="mt-6 mb-2 text-base font-extrabold">คู่มือย่อ CHECK 8</h2>
         <div className="space-y-2.5">
           {CHECK5_ITEMS.map((item) => {
             const review = item.actionKind !== 'CORRECT_NOW';

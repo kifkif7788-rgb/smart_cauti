@@ -1,14 +1,29 @@
 /**
- * CAUTI Bundle CHECK 5 — นิยามและตรรกะการให้ feedback
+ * CAUTI Bundle CHECK 8 — นิยามและตรรกะการให้ feedback
  *
  * อ้างอิง: Web Application Specification v1.0 ส่วนที่ 5.2 และ 5.3
- * และภาคผนวกแบบประเมิน CHECK 5 ของโครงการวิจัย
+ * และภาคผนวกแบบประเมิน CHECK 8 ของโครงการวิจัย
  *
  * โมดูลนี้เป็น pure function ทั้งหมด ไม่พึ่ง network หรือ DB
  * จึงทดสอบได้ตรง ๆ และใช้ซ้ำได้ทั้งฝั่ง server และ client
  */
 
-export const CHECK5_KEYS = ['need', 'fix', 'flow', 'below', 'closed'] as const;
+export const CHECK5_KEYS = [
+  'need',
+  'fix',
+  'flow',
+  'below',
+  'closed',
+  'hand',
+  'flash',
+  'drain',
+] as const;
+
+/**
+ * สามข้อท้ายเพิ่มทีหลัง การประเมินที่บันทึกไว้ก่อนหน้านั้นจึงไม่มีคำตอบของข้อเหล่านี้
+ * ต้องแยกให้ออกระหว่าง "ตอบว่าไม่ผ่าน" กับ "ยังไม่เคยถาม"
+ */
+export const CHECK5_ADDED_KEYS = ['hand', 'flash', 'drain'] as const;
 export type Check5Key = (typeof CHECK5_KEYS)[number];
 
 /**
@@ -30,8 +45,19 @@ export function isNurseLevel(value: unknown): value is NurseLevel {
   return value === 'RN' || value === 'NA';
 }
 
-/** คำตอบ 5 ข้อ — true = ผ่าน, false = ไม่ผ่าน */
-export type Check5Answers = Record<Check5Key, boolean>;
+/**
+ * คำตอบแต่ละข้อ — true = ผ่าน, false = ไม่ผ่าน
+ * สามข้อที่เพิ่มทีหลังเป็น undefined ได้ หมายถึงการประเมินครั้งนั้นยังไม่มีข้อนี้
+ */
+export type Check5AddedKey = (typeof CHECK5_ADDED_KEYS)[number];
+
+export type Check5Answers = {
+  need: boolean;
+  fix: boolean;
+  flow: boolean;
+  below: boolean;
+  closed: boolean;
+} & Partial<Record<Check5AddedKey, boolean>>;
 
 /**
  * ประเภทการตอบสนองเมื่อข้อนั้นไม่ผ่าน
@@ -120,6 +146,39 @@ export const CHECK5_ITEMS: readonly Check5Item[] = [
     actionMessage:
       'ดำเนินการตาม protocol ของหน่วยงานเมื่อระบบปิดเสีย และรายงานทีมผู้ดูแล',
   },
+  {
+    key: 'hand',
+    order: 6,
+    label: 'HAND',
+    labelTh: 'การล้างมือ',
+    question: 'ล้างมือก่อนและหลังสัมผัสสายสวน ถุงปัสสาวะ หรือเทปัสสาวะ',
+    hint: 'ล้างมือทุกครั้งที่สัมผัสระบบ ไม่ใช่เฉพาะเมื่อเห็นสิ่งสกปรก',
+    actionKind: 'CORRECT_NOW',
+    actionTitle: 'ล้างมือทันที',
+    actionMessage: 'ล้างมือทันทีและทบทวนจังหวะที่ต้องล้างมือกับผู้ปฏิบัติ',
+  },
+  {
+    key: 'flash',
+    order: 7,
+    label: 'FLASH',
+    labelTh: 'ทำความสะอาด',
+    question: 'ทำความสะอาดอวัยวะสืบพันธุ์และรอบสายทุกวัน/หลังขับถ่าย แล้วซับให้แห้ง',
+    hint: 'ทำทุกวันและหลังขับถ่ายทุกครั้ง ซับให้แห้งเพื่อลดการหมักหมม',
+    actionKind: 'CORRECT_NOW',
+    actionTitle: 'ทำความสะอาดทันที',
+    actionMessage: 'ทำความสะอาดอวัยวะสืบพันธุ์และรอบสาย แล้วซับให้แห้ง',
+  },
+  {
+    key: 'drain',
+    order: 8,
+    label: 'DRAIN',
+    labelTh: 'การเทปัสสาวะ',
+    question: 'เทปัสสาวะถูกวิธี ใช้ภาชนะเฉพาะราย ปลายก๊อกไม่สัมผัสภาชนะหรือพื้น และบันทึกปริมาณ',
+    hint: 'ภาชนะต้องเป็นของผู้ป่วยรายนั้นเท่านั้น และปลายก๊อกห้ามสัมผัสสิ่งใด',
+    actionKind: 'CORRECT_NOW',
+    actionTitle: 'แก้ไขวิธีและบันทึกให้ครบ',
+    actionMessage: 'แก้วิธีเทปัสสาวะให้ถูกต้อง และบันทึกปริมาณที่เทให้ครบ',
+  },
 ] as const;
 
 export const CHECK5_BY_KEY: Record<Check5Key, Check5Item> = Object.fromEntries(
@@ -146,7 +205,7 @@ export interface Check5Result {
 }
 
 /**
- * ประเมินผล CHECK 5
+ * ประเมินผล CHECK 8
  *
  * ลำดับความรุนแรง (ข้อที่รุนแรงกว่าเป็นตัวกำหนด feedback รวม):
  *   1. NEED ไม่ผ่าน                      → REVIEW_REMOVAL  (รุนแรงสุด)
@@ -157,7 +216,10 @@ export interface Check5Result {
  * NEED มาก่อน CLOSED เพราะถ้าไม่มีข้อบ่งชี้แล้ว การถอดสายแก้ปัญหาทั้งหมดในคราวเดียว
  */
 export function evaluateCheck5(answers: Check5Answers): Check5Result {
-  const failedItems: FailedItem[] = CHECK5_ITEMS.filter((item) => !answers[item.key]).map(
+  // ข้อที่ไม่ได้ถาม (undefined) ไม่ถือว่าตก — ต่างจากตอบว่าไม่ผ่าน
+  const failedItems: FailedItem[] = CHECK5_ITEMS.filter(
+    (item) => answers[item.key] === false,
+  ).map(
     (item) => ({
       key: item.key,
       label: item.label,
@@ -192,14 +254,23 @@ export function evaluateCheck5(answers: Check5Answers): Check5Result {
   };
 }
 
-/** ตรวจว่า payload มีคำตอบครบทั้ง 5 ข้อและเป็น boolean จริง */
+/**
+ * ตรวจ payload ของคำตอบ
+ *
+ * ห้าข้อแรกต้องมีครบเสมอ ส่วนสามข้อที่เพิ่มทีหลังขาดได้
+ * เพราะรายการที่ค้างอยู่ในคิวออฟไลน์ของเครื่องผู้ใช้ตั้งแต่ก่อนเพิ่มข้อ
+ * ยังต้องซิงก์ขึ้นมาได้โดยไม่ถูกทิ้ง
+ */
 export function parseAnswers(input: unknown): Check5Answers | null {
   if (typeof input !== 'object' || input === null) return null;
   const record = input as Record<string, unknown>;
   const answers = {} as Check5Answers;
+
   for (const key of CHECK5_KEYS) {
-    if (typeof record[key] !== 'boolean') return null;
-    answers[key] = record[key] as boolean;
+    const value = record[key];
+    const optional = (CHECK5_ADDED_KEYS as readonly string[]).includes(key);
+    if (typeof value === 'boolean') answers[key] = value;
+    else if (!optional) return null;
   }
   return answers;
 }

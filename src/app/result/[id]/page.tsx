@@ -37,6 +37,10 @@ export default async function ResultPage(props: PageProps<'/result/[id]'>) {
     flow: assessment.flow,
     below: assessment.below,
     closed: assessment.closed,
+    // null = การประเมินครั้งนั้นยังไม่มีข้อนี้ ต้องส่งเป็น undefined ไม่ใช่ false
+    hand: assessment.hand ?? undefined,
+    flash: assessment.flash ?? undefined,
+    drain: assessment.drain ?? undefined,
   });
 
 

@@ -265,7 +265,7 @@ export function Check5Form({
         </div>
       )}
 
-      <div className="check-heading"><h2>CAUTI BUNDLE CHECK 5</h2><p>กรุณาประเมินสภาพผู้ป่วยในวันนี้</p></div>
+      <div className="check-heading"><h2>CAUTI BUNDLE CHECK 8</h2><p>กรุณาประเมินสภาพผู้ป่วยในวันนี้</p></div>
 
       {/* ── คำถาม 5 ข้อ ─────────────────────────────────────────── */}
       <div className="mt-4 space-y-3 px-4">
@@ -488,7 +488,7 @@ export function Check5Form({
             className="btn-primary submit-assessment w-full text-[16px]"
           >
             <UiIcon name="send"/>
-            {submitting ? 'กำลังบันทึก…' : complete ? 'ส่งข้อมูล' : `ตอบให้ครบ 5 ข้อ (${answeredCount}/5)`}
+            {submitting ? 'กำลังบันทึก…' : complete ? 'ส่งข้อมูล' : `ตอบให้ครบ ${CHECK5_ITEMS.length} ข้อ (${answeredCount}/${CHECK5_ITEMS.length})`}
           </button>
         </div>
       </div>
