@@ -28,13 +28,13 @@ export default async function AdminUsersPage() {
   const { data: users } = await db()
     .from('app_user')
     .select(
-      'user_id, employee_id, full_name, role, ward_codes, nurse_level, is_active, must_change_pin, pin_changed_at',
+      'user_id, employee_id, full_name, role, ward_codes, nurse_level, is_active, pin_changed_at',
     )
     .order('employee_id');
 
   const list = users ?? [];
   const active = list.filter((u) => u.is_active).length;
-  const starterPin = list.filter((u) => u.must_change_pin).length;
+  const starterPin = list.filter((u) => u.pin_changed_at === null).length;
 
   return (
     <>
@@ -45,7 +45,7 @@ export default async function AdminUsersPage() {
         </p>
         <p className="mt-1 text-[12.5px] leading-relaxed" style={{ color: 'var(--muted)' }}>
           ระบบเก็บ PIN เป็นค่าที่เข้ารหัสแล้วเท่านั้น หน้านี้จึงดู PIN เดิมไม่ได้
-          หากพนักงานลืม PIN ให้กดตั้ง PIN ใหม่ ระบบจะสุ่มให้และบังคับให้เจ้าตัวเปลี่ยนเองเมื่อเข้าระบบ
+          หากพนักงานลืม PIN ให้กดตั้ง PIN ใหม่ ระบบจะสุ่ม PIN ให้และแสดงครั้งเดียว
         </p>
 
         {starterPin > 0 && (
@@ -53,8 +53,9 @@ export default async function AdminUsersPage() {
             className="mt-3 rounded-lg px-3 py-2.5 text-[13px] leading-relaxed font-semibold"
             style={{ background: 'var(--correct-bg)', color: 'var(--correct)' }}
           >
-            {starterPin} บัญชียังใช้ PIN ที่ระบบตั้งให้ ระบบจะบังคับให้ตั้ง PIN ใหม่
-            เมื่อเข้าระบบครั้งแรก จนกว่าจะตั้งแล้วจึงใช้งานส่วนอื่นได้
+            {starterPin} บัญชียังใช้ PIN ที่ระบบหรือแอดมินตั้งให้
+            แนะนำให้เจ้าของบัญชีตั้ง PIN ของตัวเองที่เมนู "เปลี่ยน PIN" เพื่อให้ประวัติการบันทึก
+            ชี้ตัวผู้ปฏิบัติได้จริง แต่ไม่ได้บังคับ ใช้งานได้ตามปกติ
           </p>
         )}
 
@@ -104,10 +105,13 @@ export default async function AdminUsersPage() {
                   </div>
 
                   <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 border-t pt-2" style={{ borderColor: 'var(--border)' }}>
-                    <span className="min-w-0 flex-1 text-[12px]" style={{ color: user.must_change_pin ? 'var(--correct)' : 'var(--muted)' }}>
-                      {user.must_change_pin
-                        ? 'ยังใช้ PIN ที่ระบบตั้งให้ — ต้องตั้งใหม่เมื่อเข้าระบบ'
-                        : 'ตั้ง PIN เองแล้ว'}
+                    <span
+                      className="min-w-0 flex-1 text-[12px]"
+                      style={{ color: user.pin_changed_at ? 'var(--muted)' : 'var(--correct)' }}
+                    >
+                      {user.pin_changed_at
+                        ? 'ตั้ง PIN เองแล้ว'
+                        : 'ยังใช้ PIN ที่ระบบตั้งให้'}
                     </span>
                     <ResetPinButton userId={user.user_id} employeeId={user.employee_id} />
                   </div>

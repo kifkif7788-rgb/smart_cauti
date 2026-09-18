@@ -7,7 +7,7 @@ import { generatePin, getSession, hashPin } from '@/lib/auth';
  *
  * ระบบเก็บแต่ scrypt hash จึงกู้ PIN เดิมคืนไม่ได้ ทางเดียวคือตั้งให้ใหม่
  * PIN ที่ได้ส่งกลับมาครั้งเดียวเพื่อบอกเจ้าตัว แล้วไม่ถูกเก็บไว้ที่ใดอีก
- * และตั้งธงบังคับเปลี่ยนไว้ เพราะระหว่างนี้แอดมินรู้ PIN ของคนอื่นอยู่
+ * บัญชีจะกลับไปขึ้นว่ายังไม่ได้ตั้ง PIN เอง เพราะระหว่างนี้แอดมินรู้ PIN อยู่
  */
 export async function POST(
   _request: NextRequest,
@@ -43,7 +43,6 @@ export async function POST(
     .from('app_user')
     .update({
       pin_hash: await hashPin(pin),
-      must_change_pin: true,
       pin_changed_at: null,
     })
     .eq('user_id', user.user_id);

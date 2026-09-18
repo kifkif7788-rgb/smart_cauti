@@ -6,8 +6,7 @@ import { PinForm } from './PinForm';
 /**
  * เปลี่ยน PIN ของตัวเอง
  *
- * บัญชีที่ยังใช้ PIN ตั้งต้นจะถูก proxy พามาที่นี่และออกไปหน้าอื่นไม่ได้
- * จึงไม่มีปุ่มย้อนกลับให้ในกรณีนั้น
+ * เป็นทางเลือก ไม่บังคับ เข้ามาได้จากเมนูเมื่อต้องการตั้ง PIN ของตัวเอง
  */
 export default async function PinPage() {
   const session = await getSession();
@@ -17,11 +16,11 @@ export default async function PinPage() {
     <>
       <AppHeader
         title="เปลี่ยน PIN"
-        backHref={session.mustChangePin ? undefined : '/'}
+        backHref="/"
         subtitle={`${session.employeeId} · ${session.fullName}`}
       />
       <main className="mx-auto max-w-md px-4 pb-16 pt-4">
-        <PinForm forced={session.mustChangePin} />
+        <PinForm />
       </main>
     </>
   );

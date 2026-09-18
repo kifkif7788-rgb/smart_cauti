@@ -71,7 +71,6 @@ async function login(request: NextRequest) {
     role: user.role,
     wardCodes: user.ward_codes,
     nurseLevel: user.nurse_level,
-    mustChangePin: user.must_change_pin,
   };
 
   await setSessionCookie(await createSessionToken(session));

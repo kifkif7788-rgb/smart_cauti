@@ -44,8 +44,6 @@ export interface SessionUser {
   wardCodes: string[];
   /** คุณวุฒิที่ผูกกับบัญชี — null สำหรับบัญชีที่ไม่ได้ระบุไว้ เช่น แอดมิน */
   nurseLevel: NurseLevel | null;
-  /** ยังใช้ PIN ที่ระบบหรือแอดมินตั้งให้ ต้องตั้งใหม่ก่อนจึงจะใช้งานส่วนอื่นได้ */
-  mustChangePin: boolean;
 }
 
 // ── PIN hashing ──────────────────────────────────────────────────────
@@ -108,7 +106,6 @@ export async function createSessionToken(user: SessionUser): Promise<string> {
     role: user.role,
     wardCodes: user.wardCodes,
     nurseLevel: user.nurseLevel,
-    mustChangePin: user.mustChangePin,
   })
     .setProtectedHeader({ alg: 'HS256' })
     .setSubject(user.userId)
@@ -130,7 +127,6 @@ export async function readSessionToken(token: string): Promise<SessionUser | nul
       role: payload.role as UserRole,
       wardCodes: Array.isArray(payload.wardCodes) ? (payload.wardCodes as string[]) : [],
       nurseLevel: isNurseLevel(payload.nurseLevel) ? payload.nurseLevel : null,
-      mustChangePin: payload.mustChangePin === true,
     };
   } catch {
     return null;

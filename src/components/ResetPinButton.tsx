@@ -55,7 +55,7 @@ export function ResetPinButton({
         </div>
         <p className="mt-1 leading-relaxed">
           บอกเจ้าตัวเดี๋ยวนี้ หน้านี้แสดงครั้งเดียวและดูย้อนหลังไม่ได้
-          เจ้าตัวต้องตั้ง PIN ของตัวเองทันทีที่เข้าระบบ
+          แนะนำให้เจ้าตัวตั้ง PIN ของตัวเองต่อที่เมนู "เปลี่ยน PIN"
         </p>
         <button
           type="button"

@@ -32,9 +32,7 @@ export type AppUserRow = {
   /** คุณวุฒิผู้ประเมินที่ผูกกับบัญชี — null เมื่อบัญชีนั้นไม่ได้ลงมือประเมิน */
   nurse_level: NurseLevelDb | null;
   pin_hash: string;
-  /** ยังใช้ PIN ที่ระบบหรือแอดมินตั้งให้ ต้องตั้งใหม่ก่อนใช้งาน */
-  must_change_pin: boolean;
-  /** เวลาที่เจ้าของบัญชีตั้ง PIN เอง — null คือยังไม่เคยตั้งเอง */
+  /** เวลาที่เจ้าของบัญชีตั้ง PIN เอง — null คือยังใช้ PIN ที่ระบบหรือแอดมินตั้งให้ */
   pin_changed_at: string | null;
   line_user_id: string | null;
   is_active: boolean;

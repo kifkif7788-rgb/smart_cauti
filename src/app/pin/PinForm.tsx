@@ -56,7 +56,7 @@ function PinField({
  * ตรวจกฎเดียวกับฝั่ง server ตั้งแต่ในเบราว์เซอร์เพื่อบอกปัญหาได้ทันที
  * แต่ฝั่ง server ยังตรวจซ้ำเสมอ ตรงนี้เป็นแค่การช่วยผู้ใช้ ไม่ใช่ด่านกัน
  */
-export function PinForm({ forced }: { forced: boolean }) {
+export function PinForm() {
   const router = useRouter();
   const [currentPin, setCurrentPin] = useState('');
   const [newPin, setNewPin] = useState('');
@@ -134,16 +134,6 @@ export function PinForm({ forced }: { forced: boolean }) {
 
   return (
     <form onSubmit={handleSubmit} className="surface space-y-4 p-5">
-      {forced && (
-        <p
-          className="rounded-lg px-3 py-2.5 text-[13px] leading-relaxed font-semibold"
-          style={{ background: 'var(--correct-bg)', color: 'var(--correct)' }}
-        >
-          บัญชีนี้ยังใช้ PIN ตั้งต้นที่ให้มาพร้อมกันหลายคน
-          ตั้ง PIN ของตัวเองก่อนจึงจะใช้งานส่วนอื่นได้
-        </p>
-      )}
-
       <PinField
         id="current-pin"
         label="PIN ปัจจุบัน"
