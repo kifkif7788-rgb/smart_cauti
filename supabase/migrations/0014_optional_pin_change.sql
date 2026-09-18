@@ -9,3 +9,11 @@
 -- ════════════════════════════════════════════════════════════════════
 
 alter table app_user drop column if exists must_change_pin;
+
+-- สี่บัญชีเดิมใช้ PIN ส่วนตัวของตัวเองมาตั้งแต่ต้น ไม่ใช่ PIN ที่ระบบตั้งให้
+-- แต่คอลัมน์ pin_changed_at เพิ่งเพิ่มใน 0013 ค่าจึงว่างและทำให้หน้าบัญชีผู้ใช้
+-- แสดงผิดว่ายังใช้ PIN ที่ระบบตั้งให้ บันทึกเวลาย้อนให้ตรงกับความจริง
+update app_user
+set pin_changed_at = now()
+where employee_id in ('AD01', 'AU01', 'H001', 'IC01')
+  and pin_changed_at is null;
