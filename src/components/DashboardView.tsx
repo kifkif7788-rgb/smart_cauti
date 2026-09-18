@@ -7,8 +7,11 @@ import type { PassRatePoint } from '@/lib/dashboard';
 import { CHECK5_ITEMS } from '@/lib/check5';
 import { foleyDay } from '@/lib/shift';
 import type { AssessmentRow, EpisodeRow } from '@/types/database';
+import type { DashboardScope } from '@/lib/auth-roles';
 
 interface Props {
+  /** CARE = เห็นเฉพาะส่วนที่ใช้ดูแลผู้ป่วยตรงหน้า ดู dashboardScope() */
+  scope: DashboardScope;
   period: Period;
   passTrend: PassRatePoint[];
   wardCodes: string[];
@@ -25,7 +28,7 @@ interface Props {
   historyError: boolean;
 }
 
-export function DashboardView({ period, passTrend, wardCodes, list, rows, pass, correct, review, percent, colors, trend, peak, longStay, historyError }: Props) {
+export function DashboardView({ scope, period, passTrend, wardCodes, list, rows, pass, correct, review, percent, colors, trend, peak, longStay, historyError }: Props) {
   const passedAll = rows.filter((a) => a.all_pass).length;
 
   // แถวเก่าก่อนมีการเก็บคุณวุฒิจะเป็น null จึงแยกไว้เป็นกลุ่มของตัวเอง
@@ -52,13 +55,16 @@ export function DashboardView({ period, passTrend, wardCodes, list, rows, pass, 
       <AppHeader title="Dashboard" backHref="/" subtitle={wardCodes.join(', ')} />
       <main className="dashboard-page mx-auto max-w-2xl px-4 pb-16 pt-4">
         <div className="mb-4"><h2 className="text-lg font-extrabold">ภาพรวมการดูแล · {wardCodes.join(', ')}</h2><p className="dashboard-subtitle">ข้อมูล ณ {new Intl.DateTimeFormat('th-TH', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Bangkok' }).format(new Date())} · <DashboardRefresh /></p>
-          <nav className="period-tabs" aria-label="เลือกช่วงเวลา">
-            {(Object.keys(PERIOD_LABEL) as Period[]).map((key) => (
-              <Link key={key} href={`/dashboard?period=${key}`} aria-current={period === key ? 'page' : undefined}>
-                {PERIOD_LABEL[key]}
-              </Link>
-            ))}
-          </nav></div>
+          {scope === 'FULL' && (
+            <nav className="period-tabs" aria-label="เลือกช่วงเวลา">
+              {(Object.keys(PERIOD_LABEL) as Period[]).map((key) => (
+                <Link key={key} href={`/dashboard?period=${key}`} aria-current={period === key ? 'page' : undefined}>
+                  {PERIOD_LABEL[key]}
+                </Link>
+              ))}
+            </nav>
+          )}</div>
+        {scope === 'FULL' && (<>
         <div className="dashboard-metrics grid grid-cols-2 gap-3">
           <div className="surface text-center"><div className="metric-label">ผู้ป่วยที่ใส่ Foley</div><div className="metric-value">{list.length}<small>ราย</small></div></div>
           <div className="surface text-center"><div className="metric-label">Foley &gt; 3 วัน</div><div className="metric-value metric-review">{longStay.length}<small>ราย</small></div></div>
@@ -107,6 +113,8 @@ export function DashboardView({ period, passTrend, wardCodes, list, rows, pass, 
             }))}
           />
         </section>
+
+        </>)}
 
         <section className="surface dashboard-card">
           <h2>จำนวนผู้ป่วยที่ใส่ Foley รายวัน (7 วันล่าสุด)</h2>

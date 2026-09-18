@@ -1,13 +1,8 @@
 import { ScanHero, CareNote } from '@/components/Brand';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import {
-  getSession,
-  canAlwaysSeeDashboard,
-  canDiagnoseInfection,
-  needsNurseLevel,
-} from '@/lib/auth';
-import { getActiveStudy, nurseCanSeeDashboard } from '@/lib/study';
+import { getSession, canDiagnoseInfection, needsNurseLevel } from '@/lib/auth';
+import { getActiveStudy } from '@/lib/study';
 import { db } from '@/lib/db';
 import { awaitingDiagnosisEpisodes } from '@/lib/awaiting-diagnosis';
 import { resolveNurseLevel } from '@/lib/nurse-level-cookie';
@@ -36,8 +31,6 @@ export default async function HomePage() {
   const awaitingList = list.filter((e) => awaitingDiagnosis.has(e.episode_id));
   const canDiagnose = canDiagnoseInfection(session.role);
   const nurseLevel = await resolveNurseLevel(session);
-  const showDashboard =
-    canAlwaysSeeDashboard(session.role) || nurseCanSeeDashboard(study.current_mode);
 
   return (
     <>
@@ -48,7 +41,6 @@ export default async function HomePage() {
         <OfflineQueueBadge />
 
         <ScanHero
-          showDashboard={showDashboard}
           nurseLevel={nurseLevel}
           canChooseLevel={session.nurseLevel === null && needsNurseLevel(session.role)}
         />

@@ -28,9 +28,11 @@ export type { UserRole } from './auth-roles';
 export {
   canAlwaysSeeDashboard,
   canDiagnoseInfection,
+  dashboardScope,
   needsNurseLevel,
   sourceForRole,
 } from './auth-roles';
+export type { DashboardScope } from './auth-roles';
 
 import type { UserRole } from './auth-roles';
 import { isNurseLevel, type NurseLevel } from './check5';

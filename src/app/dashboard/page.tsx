@@ -1,8 +1,8 @@
 import { DashboardView } from '@/components/DashboardView';
 import { foleyTrend, passRateTrend } from '@/lib/dashboard';
 import { redirect } from 'next/navigation';
-import { getSession, canAlwaysSeeDashboard } from '@/lib/auth';
-import { getActiveStudy, nurseCanSeeDashboard } from '@/lib/study';
+import { getSession, dashboardScope } from '@/lib/auth';
+import { getActiveStudy } from '@/lib/study';
 import { db } from '@/lib/db';
 import type { AssessmentRow } from '@/types/database';
 import { periodWindow, isPeriod, foleyDay, type Period } from '@/lib/shift';
@@ -12,9 +12,10 @@ export default async function DashboardPage(props: PageProps<'/dashboard'>) {
   if (!session) redirect('/login');
 
   const study = await getActiveStudy();
-  const allowed =
-    canAlwaysSeeDashboard(session.role) || nurseCanSeeDashboard(study.current_mode);
-  if (!allowed) redirect('/');
+
+  // พยาบาลและผู้ช่วยเหลือคนไข้เห็นเฉพาะส่วนที่ใช้ดูแลผู้ป่วยตรงหน้า
+  // จึงไม่ต้องดึงผลการประเมินซึ่งใช้เฉพาะในภาพรวมสำหรับผู้กำกับคุณภาพ
+  const scope = dashboardScope(session.role);
 
   const wardCodes = session.wardCodes.length > 0 ? session.wardCodes : [study.ward_code];
 
@@ -30,7 +31,7 @@ export default async function DashboardPage(props: PageProps<'/dashboard'>) {
   if (!episodes) throw new Error('ไม่สามารถโหลดข้อมูลหอผู้ป่วยได้');
   const list = episodes;
   const { start, end } = periodWindow(period);
-  const { data: assessments, error: assessmentError } = list.length ? await db()
+  const { data: assessments, error: assessmentError } = scope === 'FULL' && list.length ? await db()
     .from('assessment').select('*').in('episode_id', list.map(e => e.episode_id))
     .eq('source', 'NURSE').eq('study_mode', study.current_mode)
     .gte('assessed_at', start.toISOString()).lt('assessed_at', end.toISOString())
@@ -60,5 +61,5 @@ export default async function DashboardPage(props: PageProps<'/dashboard'>) {
   const peak = Math.max(1, ...trend.map(p => p.count));
   const longStay = list.filter((e) => foleyDay(e.insert_date) > 3);
 
-  return <DashboardView period={period} passTrend={passTrend} wardCodes={wardCodes} list={list} rows={rows} pass={pass} correct={correct} review={review} percent={percent} colors={colors} trend={trend} peak={peak} longStay={longStay} historyError={Boolean(historyError)} />;
+  return <DashboardView scope={scope} period={period} passTrend={passTrend} wardCodes={wardCodes} list={list} rows={rows} pass={pass} correct={correct} review={review} percent={percent} colors={colors} trend={trend} peak={peak} longStay={longStay} historyError={Boolean(historyError)} />;
 }
