@@ -9,6 +9,7 @@ import { resolveNurseLevel } from '@/lib/nurse-level-cookie';
 import { foleyDay, currentShift, SHIFT_LABEL_TH } from '@/lib/shift';
 import { maskHn } from '@/lib/hn';
 import { AppHeader } from '@/components/AppHeader';
+import { UiIcon } from '@/components/UiIcon';
 import { HomeNotices } from '@/components/HomeNotices';
 import { OfflineQueueBadge } from '@/components/OfflineQueueBadge';
 
@@ -30,6 +31,15 @@ export default async function HomePage() {
   const awaitingDiagnosis = await awaitingDiagnosisEpisodes(list.map((e) => e.episode_id));
   const awaitingList = list.filter((e) => awaitingDiagnosis.has(e.episode_id));
   const canDiagnose = canDiagnoseInfection(session.role);
+
+  // นับเฉพาะตอนที่แอดมินเปิดหน้าแรก คนอื่นไม่ต้องจ่ายค่า query นี้
+  const { count: openRequests } =
+    session.role === 'ADMIN'
+      ? await db()
+          .from('support_request')
+          .select('request_id', { count: 'exact', head: true })
+          .eq('status', 'OPEN')
+      : { count: 0 };
   const nurseLevel = await resolveNurseLevel(session);
 
   return (
@@ -107,6 +117,37 @@ export default async function HomePage() {
           </section>
         )}
 
+        {/* ── เรื่องที่รอแอดมินดำเนินการ ──────────────────────── */}
+        {/* แอดมินอาจไม่ได้เปิดเมนูทุกวัน เรื่องที่แจ้งไว้จะค้างโดยไม่มีใครรู้ */}
+        {(openRequests ?? 0) > 0 && (
+          <Link
+            href="/admin/support"
+            className="mt-6 flex items-center gap-3 rounded-xl border-l-4 px-4 py-3"
+            style={{ background: 'var(--correct-bg)', borderColor: 'var(--correct)' }}
+          >
+            <UiIcon name="message" width={22} height={22} />
+            <span className="flex-1 text-[13px] font-bold" style={{ color: 'var(--correct)' }}>
+              มีเรื่องรอดำเนินการ {openRequests} เรื่อง
+            </span>
+            <UiIcon name="arrow" width={18} height={18} />
+          </Link>
+        )}
+
+        {/* ── ติดต่อผู้ดูแลระบบ ──────────────────────────────── */}
+        {/* วางท้ายสุดโดยตั้งใจ — เป็นทางออกเมื่อติดปัญหา ไม่ใช่งานประจำเวร */}
+        <Link
+          href={`/support?from=${encodeURIComponent('/')}`}
+          className="surface mt-6 flex items-center gap-3 px-4 py-3.5"
+        >
+          <UiIcon name="message" width={22} height={22} />
+          <span className="min-w-0 flex-1">
+            <span className="block text-[14px] font-bold">ติดต่อผู้ดูแลระบบ</span>
+            <span className="block text-[12.5px]" style={{ color: 'var(--muted)' }}>
+              แจ้งปัญหาการใช้งาน หรือขอความช่วยเหลือ
+            </span>
+          </span>
+          <UiIcon name="arrow" width={18} height={18} />
+        </Link>
       </main>
     </>
   );

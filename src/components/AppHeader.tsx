@@ -24,6 +24,7 @@ export async function AppHeader({ title, backHref, subtitle }: Props) {
               <>
                 <Link href="/admin/tags"><UiIcon name="qr"/>สร้าง QR</Link>
                 <Link href="/admin/users"><UiIcon name="user"/>บัญชีผู้ใช้</Link>
+                <Link href="/admin/support"><UiIcon name="message"/>เรื่องที่แจ้งเข้ามา</Link>
               </>
             )}
             <Link href="/scan"><UiIcon name="arrow"/>สแกน QR</Link>
@@ -32,6 +33,7 @@ export async function AppHeader({ title, backHref, subtitle }: Props) {
             )}
             <Link href="/learn"><UiIcon name="book"/>สื่อการเรียนรู้</Link>
             {session && <Link href="/pin"><UiIcon name="closed"/>เปลี่ยน PIN</Link>}
+            {session && <Link href="/support"><UiIcon name="message"/>ติดต่อผู้ดูแลระบบ</Link>}
             <LogoutButton />
           </nav>
         </details>

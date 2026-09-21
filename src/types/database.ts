@@ -10,6 +10,8 @@ export type SourceDb = 'NURSE' | 'AUDITOR';
 export type NurseLevelDb = 'RN' | 'NA';
 export type FeedbackDb = 'PASS' | 'CORRECT_NOW' | 'REVIEW_REMOVAL' | 'CLOSED_BREACH';
 export type ActionStatusDb = 'CORRECTED' | 'ESCALATED' | 'UNABLE';
+export type SupportCategoryDb = 'APP' | 'TAG' | 'DATA' | 'ACCOUNT' | 'OTHER';
+export type SupportStatusDb = 'OPEN' | 'RESOLVED';
 
 export type StudyRow = {
   study_id: string;
@@ -103,6 +105,23 @@ export type AssessmentRow = {
   all_pass: boolean;
   feedback: FeedbackDb;
   notes: string | null;
+  created_at: string;
+}
+
+export type SupportRequestRow = {
+  request_id: string;
+  reporter_id: string;
+  ward_code: string;
+  category: SupportCategoryDb;
+  /** เตียงที่เกี่ยวข้อง — null เมื่อปัญหาไม่ผูกกับเตียงใด */
+  bed_no: string | null;
+  message: string;
+  /** หน้าที่ผู้แจ้งอยู่ตอนกดแจ้ง ช่วยให้แอดมินเห็นบริบท */
+  page_path: string | null;
+  status: SupportStatusDb;
+  admin_note: string | null;
+  resolved_by: string | null;
+  resolved_at: string | null;
   created_at: string;
 }
 
@@ -212,6 +231,7 @@ export interface Database {
         Omit<Partial<InfectionDiagnosisRow>, 'origin'>
       >;
       infection_symptom: Table<InfectionSymptomRow>;
+      support_request: Table<SupportRequestRow>;
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -223,6 +243,8 @@ export interface Database {
       nurse_level: NurseLevelDb;
       feedback_type: FeedbackDb;
       action_status: ActionStatusDb;
+      support_category: SupportCategoryDb;
+      support_status: SupportStatusDb;
       catheter_at_doe: CatheterAtDoeDb;
       urine_culture_result: UrineCultureResultDb;
       infection_symptom_code: InfectionSymptomCodeDb;
