@@ -9,7 +9,7 @@ import { AppHeader } from '@/components/AppHeader';
  * เปิดในแอป YouTube แทนการฝัง iframe เพราะเครื่องในหอผู้ป่วยใช้เครือข่าย
  * โรงพยาบาลซึ่งอาจบล็อกการฝัง และการเปิดในแอปเล่นต่อเนื่องได้ดีกว่า
  *
- * ช่อง relates บอกว่าคลิปนั้นโยงกับข้อใดของ CHECK 8 ไม่ใช่การสรุปเนื้อหาในคลิป
+ * ช่อง relates บอกว่าคลิปนั้นโยงกับข้อใดของ CHECK 9 ไม่ใช่การสรุปเนื้อหาในคลิป
  */
 interface LearnVideo {
   id: string;
@@ -24,21 +24,21 @@ const VIDEOS: readonly LearnVideo[] = [
     title: "การใส่สายสวนปัสสาวะในเพศชาย (Foley's catheterization)",
     source: 'ศูนย์แพทย์ชั้นคลินิก สำนักการแพทย์',
     relates:
-      'ครอบคลุมการใส่สายและ aseptic technique ซึ่งเป็นคนละส่วนกับ CHECK 8 ' +
+      'ครอบคลุมการใส่สายและ aseptic technique ซึ่งเป็นคนละส่วนกับ CHECK 9 ' +
       'ที่ประเมินการดูแลระหว่างคาสาย การป้องกัน CAUTI ต้องอาศัยทั้งสองส่วนร่วมกัน',
   },
   {
     id: 'D5af_nAfEhY',
     title: 'ล้างมือ 7 ขั้นตอน',
     source: 'กองโรคติดต่อทั่วไป กรมควบคุมโรค',
-    relates: 'เกี่ยวข้องกับ CHECK 8 ข้อ 6 HAND — ล้างมือก่อนและหลังสัมผัสสายสวนและถุงปัสสาวะ',
+    relates: 'เกี่ยวข้องกับ CHECK 9 ข้อ 2 HAND — ล้างมือก่อนและหลังสัมผัสสายสวนและถุงปัสสาวะ',
   },
   {
     id: 'ZVKAkdLHTKU',
     title: 'สอนการดูแลสายสวนปัสสาวะ',
     source: 'โรงพยาบาลหนองบัวระเหว',
     relates:
-      'เกี่ยวข้องกับการดูแลระหว่างคาสาย ซึ่งเป็นขอบเขตเดียวกับ CHECK 8 ทั้งชุด',
+      'เกี่ยวข้องกับการดูแลระหว่างคาสาย ซึ่งเป็นขอบเขตเดียวกับ CHECK 9 ทั้งชุด',
   },
 ] as const;
 
@@ -90,8 +90,8 @@ export default async function LearnPage() {
           ))}
         </ul>
 
-        {/* ── คู่มือย่อ CHECK 8 ────────────────────────────────── */}
-        <h2 className="mt-6 mb-2 text-base font-extrabold">คู่มือย่อ CHECK 8</h2>
+        {/* ── คู่มือย่อ CHECK 9 ────────────────────────────────── */}
+        <h2 className="mt-6 mb-2 text-base font-extrabold">คู่มือย่อ CHECK 9</h2>
         <div className="space-y-2.5">
           {CHECK5_ITEMS.map((item) => {
             const review = item.actionKind !== 'CORRECT_NOW';

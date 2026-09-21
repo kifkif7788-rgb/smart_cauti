@@ -272,9 +272,9 @@ export function Check5Form({
         </div>
       )}
 
-      <div className="check-heading"><h2>CAUTI BUNDLE CHECK 8</h2><p>กรุณาประเมินสภาพผู้ป่วยในวันนี้</p></div>
+      <div className="check-heading"><h2>CAUTI BUNDLE CHECK 9</h2><p>กรุณาประเมินสภาพผู้ป่วยในวันนี้</p></div>
 
-      {/* ── คำถาม 5 ข้อ ─────────────────────────────────────────── */}
+      {/* ── คำถามรายข้อ ─────────────────────────────────────────── */}
       <div className="mt-4 space-y-3 px-4">
         {CHECK5_ITEMS.map((item) => {
           const value = answers[item.key];
@@ -463,7 +463,7 @@ export function Check5Form({
           </div>
         </div>
 
-        {previewSaved && <p role="status" className="surface p-4 text-sm">ตัวอย่าง: ตอบครบ 5 ข้อแล้ว ข้อมูลนี้ไม่ได้ส่งเข้าระบบ</p>}
+        {previewSaved && <p role="status" className="surface p-4 text-sm">ตัวอย่าง: ตอบครบทุกข้อแล้ว ข้อมูลนี้ไม่ได้ส่งเข้าระบบ</p>}
 
         {error && (
           <div

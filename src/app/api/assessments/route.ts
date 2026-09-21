@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
   const answers = parseAnswers(body.answers);
   if (!answers) {
     return Response.json(
-      { error: 'ต้องตอบให้ครบทั้ง 5 ข้อ (need, fix, flow, below, closed)' },
+      { error: 'ต้องตอบข้อหลักให้ครบ (need, fix, flow, below, closed)' },
       { status: 400 },
     );
   }
@@ -82,7 +82,9 @@ export async function POST(request: NextRequest) {
   // การ sync อาจส่งรายการเดิมซ้ำเมื่อสัญญาณขาดกลางคัน
   const { data: existing } = await db()
     .from('assessment')
-    .select('assessment_id, assessed_at, need, fix, flow, below, closed, hand, flush, drain')
+    .select(
+      'assessment_id, assessed_at, need, fix, flow, below, closed, hand, flush, drain, document',
+    )
     .eq('client_uuid', clientUuid)
     .maybeSingle();
 
@@ -101,6 +103,7 @@ export async function POST(request: NextRequest) {
         hand: existing.hand ?? undefined,
         flush: existing.flush ?? undefined,
         drain: existing.drain ?? undefined,
+        document: existing.document ?? undefined,
       }),
       true,
     );
@@ -143,10 +146,11 @@ export async function POST(request: NextRequest) {
       flow: answers.flow,
       below: answers.below,
       closed: answers.closed,
-      // สามข้อที่เพิ่มทีหลัง — null เมื่อคำตอบมาจากคิวออฟไลน์ที่ยังไม่มีข้อเหล่านี้
+      // ข้อที่เพิ่มทีหลัง — null เมื่อคำตอบมาจากคิวออฟไลน์ที่ยังไม่มีข้อเหล่านี้
       hand: answers.hand ?? null,
       flush: answers.flush ?? null,
       drain: answers.drain ?? null,
+      document: answers.document ?? null,
       feedback: result.feedback,
       notes: typeof notes === 'string' && notes.trim() ? notes.trim() : null,
     })
@@ -179,7 +183,7 @@ export async function POST(request: NextRequest) {
 
   if (diagnosis) {
     // DOE ที่เคยบันทึกไว้ถือเป็นค่าตั้งต้นเสมอ ห้ามเขียนทับจากหน้าประเมิน
-    // ไม่ปฏิเสธทั้งคำขอ เพราะผลประเมิน CHECK 8 สำคัญกว่าและต้องไม่หายไป
+    // ไม่ปฏิเสธทั้งคำขอ เพราะผลประเมิน CHECK 9 สำคัญกว่าและต้องไม่หายไป
     const { data: currentDiagnosis } = await db()
       .from('infection_diagnosis')
       .select('doe_date')

@@ -41,6 +41,7 @@ export default async function ResultPage(props: PageProps<'/result/[id]'>) {
     hand: assessment.hand ?? undefined,
     flush: assessment.flush ?? undefined,
     drain: assessment.drain ?? undefined,
+    document: assessment.document ?? undefined,
   });
 
 

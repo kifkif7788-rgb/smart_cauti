@@ -1,4 +1,4 @@
-import type { Check5Result } from '@/lib/check5';
+import { CHECK5_ITEMS, type Check5Result } from '@/lib/check5';
 import { BundleIcon, UiIcon } from './UiIcon';
 
 const BANNER = {
@@ -44,7 +44,7 @@ export function AssessmentFeedback({ result }: { result: Check5Result }) {
             <p className="mt-0.5 text-[13px] leading-relaxed">{banner.detail}</p>
             {result.failedItems.length > 0 && (
               <p className="mt-1 text-[13px] font-bold" style={{ color: banner.fg }}>
-                ไม่ผ่าน {result.failedItems.length} ข้อ จาก 5 ข้อ
+                ไม่ผ่าน {result.failedItems.length} ข้อ จาก {CHECK5_ITEMS.length} ข้อ
               </p>
             )}
           </div>
@@ -80,7 +80,7 @@ export function AssessmentFeedback({ result }: { result: Check5Result }) {
 
         {/* ── ข้อที่ผ่าน ───────────────────────────────────────── */}
         {result.failedItems.length < 5 && (
-          <div className="result-pass"><span><UiIcon name="check"/></span><div><h3>{result.allPass ? 'ทั้ง 5 ข้อผ่านเกณฑ์' : 'ข้ออื่น ๆ ผ่านเกณฑ์'}</h3><p>ดูแลต่อเนื่องตามแนวทาง</p></div></div>
+          <div className="result-pass"><span><UiIcon name="check"/></span><div><h3>{result.allPass ? `ทั้ง ${CHECK5_ITEMS.length} ข้อผ่านเกณฑ์` : 'ข้ออื่น ๆ ผ่านเกณฑ์'}</h3><p>ดูแลต่อเนื่องตามแนวทาง</p></div></div>
         )}
 
   </>);

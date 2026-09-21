@@ -24,10 +24,10 @@ const fail = (...keys: Array<keyof Check5Answers>): Check5Answers => {
   return answers;
 };
 
-describe('นิยาม CHECK 8', () => {
-  it('มีครบ 8 ข้อ เรียงลำดับ 1–8', () => {
-    expect(CHECK5_ITEMS).toHaveLength(8);
-    expect(CHECK5_ITEMS.map((i) => i.order)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+describe('นิยาม CHECK 9', () => {
+  it('มีครบ 9 ข้อ เรียงลำดับ 1–9', () => {
+    expect(CHECK5_ITEMS).toHaveLength(9);
+    expect(CHECK5_ITEMS.map((i) => i.order)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
     expect(CHECK5_ITEMS.map((i) => i.key)).toEqual([...CHECK5_KEYS]);
   });
 
@@ -96,7 +96,7 @@ describe('evaluateCheck5 — รายละเอียดข้อที่ไ
 
   it('เรียงข้อที่ไม่ผ่านตามลำดับข้อ ไม่ใช่ตามลำดับที่ตรวจพบ', () => {
     const result = evaluateCheck5(fail('closed', 'fix'));
-    expect(result.failedItems.map((f) => f.order)).toEqual([2, 5]);
+    expect(result.failedItems.map((f) => f.order)).toEqual([3, 6]);
   });
 
   it('correctableKeys ไม่รวม NEED และ CLOSED', () => {

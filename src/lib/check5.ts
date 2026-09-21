@@ -1,8 +1,8 @@
 /**
- * CAUTI Bundle CHECK 8 — นิยามและตรรกะการให้ feedback
+ * CAUTI Bundle CHECK 9 — นิยามและตรรกะการให้ feedback
  *
  * อ้างอิง: Web Application Specification v1.0 ส่วนที่ 5.2 และ 5.3
- * และภาคผนวกแบบประเมิน CHECK 8 ของโครงการวิจัย
+ * และภาคผนวกแบบประเมิน CHECK 9 ของโครงการวิจัย
  *
  * โมดูลนี้เป็น pure function ทั้งหมด ไม่พึ่ง network หรือ DB
  * จึงทดสอบได้ตรง ๆ และใช้ซ้ำได้ทั้งฝั่ง server และ client
@@ -10,20 +10,21 @@
 
 export const CHECK5_KEYS = [
   'need',
+  'hand',
   'fix',
   'flow',
   'below',
   'closed',
-  'hand',
   'flush',
   'drain',
+  'document',
 ] as const;
 
 /**
- * สามข้อท้ายเพิ่มทีหลัง การประเมินที่บันทึกไว้ก่อนหน้านั้นจึงไม่มีคำตอบของข้อเหล่านี้
+ * ข้อที่เพิ่มทีหลัง การประเมินที่บันทึกไว้ก่อนหน้านั้นจึงไม่มีคำตอบของข้อเหล่านี้
  * ต้องแยกให้ออกระหว่าง "ตอบว่าไม่ผ่าน" กับ "ยังไม่เคยถาม"
  */
-export const CHECK5_ADDED_KEYS = ['hand', 'flush', 'drain'] as const;
+export const CHECK5_ADDED_KEYS = ['hand', 'flush', 'drain', 'document'] as const;
 export type Check5Key = (typeof CHECK5_KEYS)[number];
 
 /**
@@ -47,7 +48,7 @@ export function isNurseLevel(value: unknown): value is NurseLevel {
 
 /**
  * คำตอบแต่ละข้อ — true = ผ่าน, false = ไม่ผ่าน
- * สามข้อที่เพิ่มทีหลังเป็น undefined ได้ หมายถึงการประเมินครั้งนั้นยังไม่มีข้อนี้
+ * ข้อที่เพิ่มทีหลังเป็น undefined ได้ หมายถึงการประเมินครั้งนั้นยังไม่มีข้อนี้
  */
 export type Check5AddedKey = (typeof CHECK5_ADDED_KEYS)[number];
 
@@ -102,8 +103,19 @@ export const CHECK5_ITEMS: readonly Check5Item[] = [
       'ทบทวนความจำเป็นของการคาสายตามแนวทางหน่วยงาน / nurse-driven protocol และแจ้งทีมผู้ดูแล',
   },
   {
-    key: 'fix',
+    key: 'hand',
     order: 2,
+    label: 'HAND',
+    labelTh: 'การล้างมือ',
+    question: 'ล้างมือก่อนและหลังสัมผัสสายสวน ถุงปัสสาวะ หรือเทปัสสาวะ',
+    hint: 'ล้างมือทุกครั้งที่สัมผัสระบบ ไม่ใช่เฉพาะเมื่อเห็นสิ่งสกปรก',
+    actionKind: 'CORRECT_NOW',
+    actionTitle: 'ล้างมือทันที',
+    actionMessage: 'ล้างมือทันทีและทบทวนจังหวะที่ต้องล้างมือกับผู้ปฏิบัติ',
+  },
+  {
+    key: 'fix',
+    order: 3,
     label: 'FIX',
     labelTh: 'การยึดตรึง',
     question: 'สายได้รับการยึดเหมาะสม ไม่มี movement หรือ urethral traction',
@@ -114,7 +126,7 @@ export const CHECK5_ITEMS: readonly Check5Item[] = [
   },
   {
     key: 'flow',
-    order: 3,
+    order: 4,
     label: 'FLOW',
     labelTh: 'การไหล',
     question: 'catheter/tubing ไม่พับงอ และ urine flow ไม่ถูกกีดขวาง',
@@ -125,7 +137,7 @@ export const CHECK5_ITEMS: readonly Check5Item[] = [
   },
   {
     key: 'below',
-    order: 4,
+    order: 5,
     label: 'BELOW',
     labelTh: 'ตำแหน่งถุง',
     question: 'ถุงอยู่ต่ำกว่ากระเพาะปัสสาวะ และไม่วางบนพื้น',
@@ -136,7 +148,7 @@ export const CHECK5_ITEMS: readonly Check5Item[] = [
   },
   {
     key: 'closed',
-    order: 5,
+    order: 6,
     label: 'CLOSED',
     labelTh: 'ระบบปิด',
     question: 'ระบบ drainage ปิดสมบูรณ์ ไม่มี disconnection หรือ leakage',
@@ -145,17 +157,6 @@ export const CHECK5_ITEMS: readonly Check5Item[] = [
     actionTitle: 'ดำเนินการตามแนวทางเมื่อระบบปิดเสีย',
     actionMessage:
       'ดำเนินการตาม protocol ของหน่วยงานเมื่อระบบปิดเสีย และรายงานทีมผู้ดูแล',
-  },
-  {
-    key: 'hand',
-    order: 6,
-    label: 'HAND',
-    labelTh: 'การล้างมือ',
-    question: 'ล้างมือก่อนและหลังสัมผัสสายสวน ถุงปัสสาวะ หรือเทปัสสาวะ',
-    hint: 'ล้างมือทุกครั้งที่สัมผัสระบบ ไม่ใช่เฉพาะเมื่อเห็นสิ่งสกปรก',
-    actionKind: 'CORRECT_NOW',
-    actionTitle: 'ล้างมือทันที',
-    actionMessage: 'ล้างมือทันทีและทบทวนจังหวะที่ต้องล้างมือกับผู้ปฏิบัติ',
   },
   {
     key: 'flush',
@@ -178,6 +179,17 @@ export const CHECK5_ITEMS: readonly Check5Item[] = [
     actionKind: 'CORRECT_NOW',
     actionTitle: 'แก้ไขวิธีและบันทึกให้ครบ',
     actionMessage: 'แก้วิธีเทปัสสาวะให้ถูกต้อง และบันทึกปริมาณที่เทให้ครบ',
+  },
+  {
+    key: 'document',
+    order: 9,
+    label: 'DOCUMENTATION',
+    labelTh: 'การบันทึก',
+    question: 'บันทึกวันที่ใส่สาย จำนวนวันคาสาย ผลการประเมิน และส่งต่อปัญหาที่พบครบถ้วน',
+    hint: 'การส่งเวรที่ขาดบันทึก ทำให้เวรถัดไปไม่รู้ว่าคาสายมากี่วันแล้ว',
+    actionKind: 'CORRECT_NOW',
+    actionTitle: 'บันทึกให้ครบทันที',
+    actionMessage: 'บันทึกวันที่ใส่สาย จำนวนวันคาสาย ผลการประเมิน และส่งต่อปัญหาที่พบให้เวรถัดไป',
   },
 ] as const;
 
@@ -205,7 +217,7 @@ export interface Check5Result {
 }
 
 /**
- * ประเมินผล CHECK 8
+ * ประเมินผล CHECK 9
  *
  * ลำดับความรุนแรง (ข้อที่รุนแรงกว่าเป็นตัวกำหนด feedback รวม):
  *   1. NEED ไม่ผ่าน                      → REVIEW_REMOVAL  (รุนแรงสุด)

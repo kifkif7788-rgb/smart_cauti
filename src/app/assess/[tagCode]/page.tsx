@@ -70,7 +70,7 @@ export default async function AssessPage(props: PageProps<'/assess/[tagCode]'>) 
           <div className="surface p-5">
             <p className="text-[14px] leading-relaxed" style={{ color: 'var(--muted)' }}>
               ระบุก่อนว่าผู้ประเมินเป็นใคร ระบบจะจำไว้ใช้กับทุกเตียงในเวรนี้
-              และเปิดแบบประเมิน CHECK 8 ให้ทันที
+              และเปิดแบบประเมิน CHECK 9 ให้ทันที
             </p>
             <NurseLevelSwitch initial={null} />
           </div>
@@ -129,7 +129,7 @@ export default async function AssessPage(props: PageProps<'/assess/[tagCode]'>) 
   return (
     <>
       <AppHeader
-        title="CAUTI Bundle CHECK 8"
+        title="CAUTI Bundle CHECK 9"
         backHref="/"
         subtitle={`เตียง ${episode.bed_no} · HN ${episode.hn}`}
       />

@@ -1,7 +1,7 @@
 import type { SVGProps } from 'react';
 import type { Check5Key } from '@/lib/check5';
 
-export type IconName = 'need' | 'fix' | 'flow' | 'below' | 'closed' | 'hand' | 'flush' | 'drain' | 'home' | 'menu' | 'chart' | 'bell' | 'shield' | 'send' | 'check' | 'alert' | 'message' | 'arrow' | 'user' | 'book' | 'logout' | 'qr';
+export type IconName = 'need' | 'fix' | 'flow' | 'below' | 'closed' | 'hand' | 'flush' | 'drain' | 'document' | 'home' | 'menu' | 'chart' | 'bell' | 'shield' | 'send' | 'check' | 'alert' | 'message' | 'arrow' | 'user' | 'book' | 'logout' | 'qr';
 
 /** One consistent stroke icon set for the bedside interface. */
 export function UiIcon({ name, ...props }: SVGProps<SVGSVGElement> & { name: IconName }) {
@@ -27,6 +27,7 @@ export function UiIcon({ name, ...props }: SVGProps<SVGSVGElement> & { name: Ico
     message: <><path d="M28 14c0 7-6 11-13 11l-9 4 2-7a10 10 0 0 1-4-8C4 7 10 3 16 3s12 4 12 11Z"/><path d="M10 14h.1m6 0h.1m6 0h.1" strokeWidth="3"/></>,
     arrow: <path d="M6 16h20m-7-7 7 7-7 7"/>,
     user: <><circle cx="16" cy="10" r="6" fill="currentColor" stroke="none"/><path d="M5 29v-5a11 11 0 0 1 22 0v5" fill="currentColor" stroke="none"/></>,
+    document: <><rect x="6" y="4" width="20" height="25" rx="3"/><rect x="11" y="2" width="10" height="5" rx="2" fill="currentColor" stroke="none"/><path d="m11 15 2.5 2.5L18 13m-7 8 2.5 2.5L18 19"/><path d="M21 15h2m-2 6h2"/></>,
     book: <><path d="M16 7C12 4 7 4 3 5v22c5-2 9-1 13 1 4-2 8-3 13-1V5c-4-1-9-1-13 2Zm0 0v21M7 10h5m-5 5h5m8-5h5m-5 5h5"/></>,
   };
   return <svg viewBox="0 0 32 32" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>{paths[name]}</svg>;

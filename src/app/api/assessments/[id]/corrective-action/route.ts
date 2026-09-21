@@ -75,6 +75,7 @@ export async function POST(
     hand: assessment.hand ?? undefined,
     flush: assessment.flush ?? undefined,
     drain: assessment.drain ?? undefined,
+    document: assessment.document ?? undefined,
   });
   const failedKeys = new Set(result.failedItems.map((f) => f.key));
   const invalid = itemsCorrected.filter((k) => !failedKeys.has(k));
