@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import QRCode from 'qrcode';
 import { getSession } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { tagUrl } from '@/lib/qr';
+import { tagUrl, kitUrl, kitCodeForWard, wardPrefixFromCode } from '@/lib/qr';
 import { getActiveStudy } from '@/lib/study';
 import { PrintButton } from '@/components/PrintButton';
 import { AppHeader } from '@/components/AppHeader';
@@ -53,6 +53,23 @@ export default async function TagSheetPage() {
     })),
   );
 
+  /**
+   * ป้ายสำหรับติดบนชุดอุปกรณ์ใส่สาย
+   *
+   * มีใบเดียวต่อหอผู้ป่วย เพราะป้ายไม่ผูกกับเตียง พยาบาลเลือกเตียงเองหลังสแกน
+   * พิมพ์หลายใบได้ตามจำนวนชุดอุปกรณ์ที่ต้องติด ทุกใบใช้รหัสเดียวกัน
+   */
+  const kitPrefix = sorted.length ? wardPrefixFromCode(sorted[0].tag_code) : null;
+  const kitCode = kitPrefix ? kitCodeForWard(kitPrefix) : null;
+  const kitSvg = kitCode
+    ? await QRCode.toString(kitUrl(kitCode, baseUrl), {
+        type: 'svg',
+        errorCorrectionLevel: 'Q',
+        margin: 4,
+        width: 180,
+      })
+    : null;
+
   const usingLocalhost = baseUrl.includes('localhost');
 
   return (
@@ -83,6 +100,28 @@ export default async function TagSheetPage() {
           <div><h2>เตรียมป้ายให้พร้อมใช้งาน</h2><p>พิมพ์ A4 ขนาดจริง 100% แล้วตัดตามกรอบ ติดที่หัวเตียงหรือราวเตียงด้วยวัสดุกันน้ำ</p></div>
           <div className={styles.printAction}>{cards.length > 0 && <PrintButton />}<small>จัดหน้าให้อัตโนมัติ · 3 คอลัมน์ต่อแผ่น</small></div>
         </section>
+
+        {kitCode && kitSvg && (
+          <>
+            <div className={`${styles.sectionHeading} ${styles.screenOnly}`}>
+              <h2>ป้ายชุดอุปกรณ์ใส่สาย</h2>
+              <p>ติดบนชุด set kit · พิมพ์ได้หลายใบ ทุกใบใช้รหัสเดียวกัน</p>
+            </div>
+            <div className={styles.grid}>
+              <article className={styles.card}>
+                <div className={styles.cardTop}><span>Smart <b>CAUTI</b></span><span className={styles.ward}>{wardCodes.join(', ')}</span></div>
+                <div className={styles.bed}><span>ชุดอุปกรณ์</span><strong>SET</strong><span className={styles.bedCaption}>INSERTION KIT</span></div>
+                <div className={styles.qrFrame}>
+                  <div className={styles.qr} role="img" aria-label={`QR ชุดอุปกรณ์ใส่สาย รหัส ${kitCode}`}
+                    // SVG comes only from the server QR encoder, never from user-supplied markup.
+                    dangerouslySetInnerHTML={{ __html: kitSvg }} />
+                </div>
+                <div className={styles.code}>{kitCode}</div>
+                <div className={styles.cardFooter}><strong>สแกนตอนใส่สาย แล้วเลือกเตียง</strong><span>ระบบเริ่มนับวันคาสายให้ทันที</span></div>
+              </article>
+            </div>
+          </>
+        )}
 
         <div className={`${styles.sectionHeading} ${styles.screenOnly}`}>
           <h2>ป้ายประจำเตียงทั้งหมด <span>{cards.length}</span></h2>

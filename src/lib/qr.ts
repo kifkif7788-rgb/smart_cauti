@@ -38,10 +38,45 @@ export function verifyTagSignature(tagCode: string, signature: string | null): b
   return timingSafeEqual(expected, actual);
 }
 
+/**
+ * รหัสป้ายบนชุดอุปกรณ์ใส่สาย — รูปแบบ XX-KIT
+ *
+ * ต่างจากป้ายประจำเตียงตรงที่ไม่ผูกกับเตียงใดเลย เพราะชุดอุปกรณ์ถูกหยิบไปใช้
+ * กับเตียงไหนก็ได้ พยาบาลจึงต้องเลือกเตียงเองหลังสแกน
+ *
+ * ใช้ลายเซ็นชุดเดียวกับป้ายประจำเตียง จึงปลอมรหัสขึ้นมาเองไม่ได้เช่นกัน
+ */
+const KIT_CODE_RE = /^([A-Z]{2})-KIT$/;
+
+export function isValidKitCode(value: unknown): value is string {
+  return typeof value === 'string' && KIT_CODE_RE.test(value);
+}
+
+/** รหัสป้ายชุดอุปกรณ์ของหอผู้ป่วย — คำนำหน้าเดียวกับป้ายประจำเตียง */
+export function kitCodeForWard(wardPrefix: string): string {
+  return `${wardPrefix.toUpperCase().slice(0, 2).padEnd(2, 'X')}-KIT`;
+}
+
+/** คำนำหน้าหอผู้ป่วยจากรหัสป้าย ใช้ได้ทั้งป้ายเตียงและป้ายชุดอุปกรณ์ */
+export function wardPrefixFromCode(code: string): string | null {
+  return KIT_CODE_RE.exec(code)?.[1] ?? TAG_CODE_RE.exec(code)?.[0].slice(0, 2) ?? null;
+}
+
 /** URL เต็มสำหรับพิมพ์ลงป้าย QR */
 export function tagUrl(tagCode: string, baseUrl: string): string {
   const base = baseUrl.replace(/\/+$/, '');
   return `${base}/s/${encodeURIComponent(tagCode)}?k=${signTagCode(tagCode)}`;
+}
+
+/**
+ * URL เต็มสำหรับพิมพ์ลงป้ายชุดอุปกรณ์
+ *
+ * ใช้ path /k แยกจาก /s เพื่อให้ URL บนป้ายสั้น และเพื่อให้เส้นทางที่พา
+ * ไปหน้าเลือกเตียงแยกขาดจากเส้นทางที่พาเข้าแบบประเมินของเตียงใดเตียงหนึ่ง
+ */
+export function kitUrl(kitCode: string, baseUrl: string): string {
+  const base = baseUrl.replace(/\/+$/, '');
+  return `${base}/k/${encodeURIComponent(kitCode)}?k=${signTagCode(kitCode)}`;
 }
 
 /**

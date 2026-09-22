@@ -10,7 +10,48 @@ const {
   tagCodeForBed,
   bedNoFromTagCode,
   tagUrl,
+  isValidKitCode,
+  kitCodeForWard,
+  wardPrefixFromCode,
+  kitUrl,
 } = await import('./qr');
+
+describe('ป้ายชุดอุปกรณ์ใส่สาย', () => {
+  it('สร้างรหัสจากคำนำหน้าหอผู้ป่วย', () => {
+    expect(kitCodeForWard('SM')).toBe('SM-KIT');
+    expect(kitCodeForWard('sm')).toBe('SM-KIT');
+  });
+
+  it('รับเฉพาะรูปแบบ XX-KIT', () => {
+    expect(isValidKitCode('SM-KIT')).toBe(true);
+    expect(isValidKitCode('SM-B01')).toBe(false);
+    expect(isValidKitCode('SMKIT')).toBe(false);
+    expect(isValidKitCode('sm-kit')).toBe(false);
+    expect(isValidKitCode(null)).toBe(false);
+  });
+
+  it('ไม่ปะปนกับรหัสประจำเตียง', () => {
+    // ป้ายชุดอุปกรณ์ต้องเข้าแบบประเมินของเตียงใดเตียงหนึ่งโดยตรงไม่ได้
+    expect(isValidTagCode('SM-KIT')).toBe(false);
+    expect(isValidKitCode('SM-B01')).toBe(false);
+  });
+
+  it('อ่านคำนำหน้าหอผู้ป่วยได้จากรหัสทั้งสองแบบ', () => {
+    expect(wardPrefixFromCode('SM-KIT')).toBe('SM');
+    expect(wardPrefixFromCode('SM-B07')).toBe('SM');
+    expect(wardPrefixFromCode('ไม่ใช่รหัส')).toBeNull();
+  });
+
+  it('URL ของป้ายชุดอุปกรณ์ใช้ /k และมีลายเซ็น', () => {
+    const url = kitUrl('SM-KIT', 'https://example.org');
+    expect(url).toBe(`https://example.org/k/SM-KIT?k=${signTagCode('SM-KIT')}`);
+  });
+
+  it('ลายเซ็นของป้ายชุดอุปกรณ์ใช้แทนลายเซ็นเตียงไม่ได้', () => {
+    expect(verifyTagSignature('SM-B01', signTagCode('SM-KIT'))).toBe(false);
+    expect(verifyTagSignature('SM-KIT', signTagCode('SM-KIT'))).toBe(true);
+  });
+});
 
 describe('tagCodeForBed', () => {
   it('เติมศูนย์หน้าเลขเตียงหลักเดียว', () => {
