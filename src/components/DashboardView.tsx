@@ -12,6 +12,8 @@ import type { DashboardScope } from '@/lib/auth-roles';
 interface Props {
   /** CARE = เห็นเฉพาะส่วนที่ใช้ดูแลผู้ป่วยตรงหน้า ดู dashboardScope() */
   scope: DashboardScope;
+  /** จำนวนครั้งที่ใช้ชุดอุปกรณ์ใส่สายในช่วงที่เลือก = จำนวนการใส่สาย */
+  kitUses: number;
   period: Period;
   passTrend: PassRatePoint[];
   wardCodes: string[];
@@ -28,7 +30,7 @@ interface Props {
   historyError: boolean;
 }
 
-export function DashboardView({ scope, period, passTrend, wardCodes, list, rows, pass, correct, review, percent, colors, trend, peak, longStay, historyError }: Props) {
+export function DashboardView({ scope, kitUses, period, passTrend, wardCodes, list, rows, pass, correct, review, percent, colors, trend, peak, longStay, historyError }: Props) {
   const passedAll = rows.filter((a) => a.all_pass).length;
 
   // แถวเก่าก่อนมีการเก็บคุณวุฒิจะเป็น null จึงแยกไว้เป็นกลุ่มของตัวเอง
@@ -68,6 +70,12 @@ export function DashboardView({ scope, period, passTrend, wardCodes, list, rows,
         <div className="dashboard-metrics grid grid-cols-2 gap-3">
           <div className="surface text-center"><div className="metric-label">ผู้ป่วยที่ใส่ Foley</div><div className="metric-value">{list.length}<small>ราย</small></div></div>
           <div className="surface text-center"><div className="metric-label">Foley &gt; 3 วัน</div><div className="metric-value metric-review">{longStay.length}<small>ราย</small></div></div>
+        </div>
+        <div className="surface mt-3 flex items-center gap-3 px-4 py-3">
+          <UiIcon name="qr" width={22} height={22}/>
+          <span className="min-w-0 flex-1 text-[13px] font-bold">ใส่สายใหม่ (ชุดอุปกรณ์ที่ใช้)</span>
+          <strong className="text-[19px] tabular-nums" style={{ color: 'var(--primary)' }}>{kitUses}</strong>
+          <span className="text-[12px]" style={{ color: 'var(--muted)' }}>ครั้ง{PERIOD_SCOPE[period]}</span>
         </div>
 
         <div className="risk-grid">

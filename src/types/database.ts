@@ -125,6 +125,17 @@ export type SupportRequestRow = {
   created_at: string;
 }
 
+export type KitUsageRow = {
+  usage_id: string;
+  kit_code: string;
+  ward_code: string;
+  bed_no: string;
+  used_by: string;
+  used_at: string;
+  client_uuid: string;
+  created_at: string;
+}
+
 export type CorrectiveActionRow = {
   action_id: string;
   assessment_id: string;
@@ -232,6 +243,7 @@ export interface Database {
       >;
       infection_symptom: Table<InfectionSymptomRow>;
       support_request: Table<SupportRequestRow>;
+      kit_usage: Table<KitUsageRow>;
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

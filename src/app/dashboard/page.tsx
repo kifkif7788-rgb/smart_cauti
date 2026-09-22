@@ -61,5 +61,16 @@ export default async function DashboardPage(props: PageProps<'/dashboard'>) {
   const peak = Math.max(1, ...trend.map(p => p.count));
   const longStay = list.filter((e) => foleyDay(e.insert_date) > 3);
 
-  return <DashboardView scope={scope} period={period} passTrend={passTrend} wardCodes={wardCodes} list={list} rows={rows} pass={pass} correct={correct} review={review} percent={percent} colors={colors} trend={trend} peak={peak} longStay={longStay} historyError={Boolean(historyError)} />;
+  // จำนวนครั้งที่ใช้ชุดอุปกรณ์ใส่สาย = จำนวนการใส่สายในช่วงนั้น
+  // ใช้เป็นตัวส่วนของอัตรา CAUTI ได้ จึงแสดงคู่กับตัวเลขอื่นของช่วงเดียวกัน
+  const { count: kitUses } = scope === 'FULL'
+    ? await db()
+        .from('kit_usage')
+        .select('usage_id', { count: 'exact', head: true })
+        .in('ward_code', wardCodes)
+        .gte('used_at', start.toISOString())
+        .lt('used_at', end.toISOString())
+    : { count: 0 };
+
+  return <DashboardView scope={scope} kitUses={kitUses ?? 0} period={period} passTrend={passTrend} wardCodes={wardCodes} list={list} rows={rows} pass={pass} correct={correct} review={review} percent={percent} colors={colors} trend={trend} peak={peak} longStay={longStay} historyError={Boolean(historyError)} />;
 }
