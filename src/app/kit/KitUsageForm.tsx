@@ -78,23 +78,23 @@ export function KitUsageForm({ kitCode, beds }: { kitCode: string; beds: Bed[] }
           บันทึกการใช้ชุดอุปกรณ์ เตียง {saved.bedNo} แล้ว
         </p>
 
-        {saved.occupied ? (
-          <p className="mt-2 text-[13px] leading-relaxed" style={{ color: 'var(--muted)' }}>
-            เตียงนี้มีผู้ป่วยคาสายอยู่ในระบบแล้ว หากเป็นการเปลี่ยนสายเส้นใหม่
-            ให้สแกน QR ที่เตียงนั้น บันทึกถอดสายเดิม แล้วลงทะเบียนสายใหม่
-          </p>
-        ) : (
-          <>
-            <p className="mt-2 text-[13px] leading-relaxed" style={{ color: 'var(--muted)' }}>
-              เตียงนี้ยังไม่มีผู้ป่วยในระบบ ลงทะเบียนต่อได้เลยเพื่อให้ระบบเริ่มนับวันคาสาย
-            </p>
-            {saved.tagCode && (
-              <Link href={`/bind/${saved.tagCode}`} className="btn-primary mt-4 flex w-full items-center justify-center gap-2 text-[16px]">
-                <UiIcon name="arrow" width={20} height={20} />
-                ลงทะเบียนผู้ป่วยเตียง {saved.bedNo}
-              </Link>
-            )}
-          </>
+        <p className="mt-2 text-[13px] leading-relaxed" style={{ color: 'var(--muted)' }}>
+          {saved.occupied
+            ? 'เตียงนี้มีผู้ป่วยคาสายอยู่ในระบบแล้ว ทำแบบประเมินต่อได้เลย หากเป็นการเปลี่ยนสายเส้นใหม่ ให้บันทึกถอดสายเดิมในหน้าประเมินก่อน'
+            : 'เตียงนี้ยังไม่มีผู้ป่วยในระบบ ลงทะเบียนก่อน แล้วระบบจะพาไปแบบประเมินให้ทันที'}
+        </p>
+
+        {/* ไปต่อที่เตียงนั้นได้เลย ไม่ต้องเดินไปสแกนป้ายที่เตียงซ้ำ */}
+        {saved.tagCode && (
+          <Link
+            href={`/kit/open/${saved.tagCode}?kit=${encodeURIComponent(kitCode)}`}
+            className="btn-primary mt-4 flex w-full items-center justify-center gap-2 text-[16px]"
+          >
+            <UiIcon name={saved.occupied ? 'need' : 'arrow'} width={20} height={20} />
+            {saved.occupied
+              ? `ทำแบบประเมิน CHECK 9 เตียง ${saved.bedNo}`
+              : `ลงทะเบียนผู้ป่วยเตียง ${saved.bedNo}`}
+          </Link>
         )}
 
         <div className="mt-3 space-y-2">
