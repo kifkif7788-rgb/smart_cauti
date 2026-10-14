@@ -4,7 +4,7 @@ import { getSession } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { tagUrl, kitUrl, kitCodeForWard, wardPrefixFromCode } from '@/lib/qr';
 import { getActiveStudy } from '@/lib/study';
-import { PrintButton } from '@/components/PrintButton';
+import { TagPicker, type TagCard } from './TagPicker';
 import { AppHeader } from '@/components/AppHeader';
 import { ShieldMark } from '@/components/Brand';
 import styles from './tags.module.css';
@@ -36,10 +36,12 @@ export default async function TagSheetPage() {
 
   const sorted = (tags ?? []).sort((a, b) => Number(a.bed_no) - Number(b.bed_no));
 
-  const cards = await Promise.all(
+  const cards: TagCard[] = await Promise.all(
     sorted.map(async (tag) => ({
-      bedNo: tag.bed_no,
-      tagCode: tag.tag_code,
+      code: tag.tag_code,
+      heading: tag.bed_no,
+      headingLabel: 'เตียง',
+      headingCaption: 'BED NUMBER',
       wardCode: tag.ward_code,
       svg: await QRCode.toString(tagUrl(tag.tag_code, baseUrl), {
         type: 'svg',
@@ -50,6 +52,8 @@ export default async function TagSheetPage() {
         margin: 4,
         width: 180,
       }),
+      footerTitle: 'สแกนเพื่อประเมิน CHECK 9',
+      footerNote: 'เช็กทุกวัน เพื่อความปลอดภัยของผู้ป่วย',
     })),
   );
 
@@ -61,13 +65,22 @@ export default async function TagSheetPage() {
    */
   const kitPrefix = sorted.length ? wardPrefixFromCode(sorted[0].tag_code) : null;
   const kitCode = kitPrefix ? kitCodeForWard(kitPrefix) : null;
-  const kitSvg = kitCode
-    ? await QRCode.toString(kitUrl(kitCode, baseUrl), {
-        type: 'svg',
-        errorCorrectionLevel: 'Q',
-        margin: 4,
-        width: 180,
-      })
+  const kitCard: TagCard | null = kitCode
+    ? {
+        code: kitCode,
+        heading: 'SET',
+        headingLabel: 'ชุดอุปกรณ์',
+        headingCaption: 'INSERTION KIT',
+        wardCode: wardCodes.join(', '),
+        svg: await QRCode.toString(kitUrl(kitCode, baseUrl), {
+          type: 'svg',
+          errorCorrectionLevel: 'Q',
+          margin: 4,
+          width: 180,
+        }),
+        footerTitle: 'สแกนตอนใส่สาย แล้วเลือกเตียง',
+        footerNote: 'ระบบเริ่มนับวันคาสายให้ทันที',
+      }
     : null;
 
   const usingLocalhost = baseUrl.includes('localhost');
@@ -96,57 +109,8 @@ export default async function TagSheetPage() {
           </div>
         )}
 
-        <section className={`${styles.printGuide} ${styles.screenOnly}`} aria-label="คำแนะนำการพิมพ์">
-          <div><h2>เตรียมป้ายให้พร้อมใช้งาน</h2><p>พิมพ์ A4 ขนาดจริง 100% แล้วตัดตามกรอบ ติดที่หัวเตียงหรือราวเตียงด้วยวัสดุกันน้ำ</p></div>
-          <div className={styles.printAction}>{cards.length > 0 && <PrintButton />}<small>จัดหน้าให้อัตโนมัติ · 3 คอลัมน์ต่อแผ่น</small></div>
-        </section>
+        <TagPicker beds={cards} kit={kitCard} />
 
-        {kitCode && kitSvg && (
-          <>
-            <div className={`${styles.sectionHeading} ${styles.screenOnly}`}>
-              <h2>ป้ายชุดอุปกรณ์ใส่สาย</h2>
-              <p>ติดบนชุด set kit · พิมพ์ได้หลายใบ ทุกใบใช้รหัสเดียวกัน</p>
-            </div>
-            <div className={styles.grid}>
-              <article className={styles.card}>
-                <div className={styles.cardTop}><span>Smart <b>CAUTI</b></span><span className={styles.ward}>{wardCodes.join(', ')}</span></div>
-                <div className={styles.bed}><span>ชุดอุปกรณ์</span><strong>SET</strong><span className={styles.bedCaption}>INSERTION KIT</span></div>
-                <div className={styles.qrFrame}>
-                  <div className={styles.qr} role="img" aria-label={`QR ชุดอุปกรณ์ใส่สาย รหัส ${kitCode}`}
-                    // SVG comes only from the server QR encoder, never from user-supplied markup.
-                    dangerouslySetInnerHTML={{ __html: kitSvg }} />
-                </div>
-                <div className={styles.code}>{kitCode}</div>
-                <div className={styles.cardFooter}><strong>สแกนตอนใส่สาย แล้วเลือกเตียง</strong><span>ระบบเริ่มนับวันคาสายให้ทันที</span></div>
-              </article>
-            </div>
-          </>
-        )}
-
-        <div className={`${styles.sectionHeading} ${styles.screenOnly}`}>
-          <h2>ป้ายประจำเตียงทั้งหมด <span>{cards.length}</span></h2>
-          <p>ใช้ซ้ำได้เมื่อเปลี่ยนผู้ป่วย</p>
-        </div>
-
-        {cards.length === 0 ? (
-          <div className={styles.empty}><h2>ยังไม่มีป้ายในหอผู้ป่วยนี้</h2><p>เมื่อเพิ่มข้อมูลป้ายประจำเตียงในระบบแล้ว ป้าย QR จะแสดงที่นี่</p></div>
-        ) : (
-          <div className={styles.grid}>
-            {cards.map((card) => (
-              <article key={card.tagCode} className={styles.card}>
-                <div className={styles.cardTop}><span>Smart <b>CAUTI</b></span><span className={styles.ward}>{card.wardCode}</span></div>
-                <div className={styles.bed}><span>เตียง</span><strong>{card.bedNo}</strong><span className={styles.bedCaption}>BED NUMBER</span></div>
-                <div className={styles.qrFrame}>
-                  <div className={styles.qr} role="img" aria-label={`QR เตียง ${card.bedNo} รหัส ${card.tagCode}`}
-                    // SVG comes only from the server QR encoder, never from user-supplied markup.
-                    dangerouslySetInnerHTML={{ __html: card.svg }} />
-                </div>
-                <div className={styles.code}>{card.tagCode}</div>
-                <div className={styles.cardFooter}><strong>สแกนเพื่อประเมิน CHECK 9</strong><span>เช็กทุกวัน เพื่อความปลอดภัยของผู้ป่วย</span></div>
-              </article>
-            ))}
-          </div>
-        )}
         <p className={`${styles.privacyNote} ${styles.screenOnly}`}>ป้ายผูกกับเตียง ไม่ผูกกับผู้ป่วย · QR บรรจุเฉพาะรหัสเตียงและลายเซ็นตรวจสอบ ไม่มีข้อมูลผู้ป่วย</p>
       </main>
     </div>
