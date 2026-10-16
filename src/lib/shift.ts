@@ -2,7 +2,7 @@
  * เวรและการคำนวณวันคาสาย — ใช้เขตเวลาไทย (Asia/Bangkok, UTC+7) เสมอ
  *
  * เซิร์ฟเวอร์อาจรันในเขตเวลา UTC แต่ "เวรเช้า" และ "Foley Day"
- * ต้องนับตามเวลาท้องถิ่นของหอผู้ป่วย มิฉะนั้นการประเมินเวรดึกหลังเที่ยงคืน
+ * ต้องนับตามเวลาท้องถิ่นของหอผู้ป่วย มิฉะนั้นการประเมินเวรบ่ายหลังเที่ยงคืน
  * จะถูกนับเป็นคนละวันกับที่พยาบาลเข้าใจ
  */
 
@@ -14,16 +14,45 @@ export const SHIFT_LABEL_TH: Record<Shift, string> = {
   NIGHT: 'เวรดึก',
 };
 
-const BANGKOK_OFFSET_MS = 7 * 60 * 60 * 1000;
+/** ช่วงเวลาของแต่ละเวรตามที่หอผู้ป่วยเขียนในตารางเวร */
+export const SHIFT_TIME_TH: Record<Shift, string> = {
+  MORNING: '08.01–16.00',
+  AFTERNOON: '16.01–00.00',
+  NIGHT: '00.01–08.00',
+};
 
-/** แปลงเวลาเป็นส่วนประกอบวัน/ชั่วโมงตามเวลาไทย */
-function bangkokParts(at: Date): { y: number; m: number; d: number; hour: number } {
+const BANGKOK_OFFSET_MS = 7 * 60 * 60 * 1000;
+const MINUTE_MS = 60 * 1000;
+const DAY_MS = 24 * 60 * MINUTE_MS;
+
+/**
+ * จุดเริ่มของแต่ละเวร นับเป็นนาทีจากเที่ยงคืนตามเวลาไทย
+ *
+ * ตารางเวรเขียนปลายช่วงแบบรวมนาทีนั้นด้วย (เช่น เวรดึก 00.01–08.00)
+ * นาที 08.00 จึงยังเป็นของเวรดึก และเวรเช้าเริ่มจริงที่ 08.01
+ * ทุกเวรยาวเท่ากัน 8 ชั่วโมง และต่อกันสนิทไม่มีช่องว่าง
+ */
+const SHIFT_LENGTH_MIN = 8 * 60;
+const NIGHT_START_MIN = 1; // 00:01
+const MORNING_START_MIN = NIGHT_START_MIN + SHIFT_LENGTH_MIN; // 08:01
+const AFTERNOON_START_MIN = MORNING_START_MIN + SHIFT_LENGTH_MIN; // 16:01
+
+/** แปลงเวลาเป็นส่วนประกอบวัน/นาทีที่ของวันตามเวลาไทย */
+function bangkokParts(at: Date): {
+  y: number;
+  m: number;
+  d: number;
+  hour: number;
+  minuteOfDay: number;
+} {
   const shifted = new Date(at.getTime() + BANGKOK_OFFSET_MS);
+  const hour = shifted.getUTCHours();
   return {
     y: shifted.getUTCFullYear(),
     m: shifted.getUTCMonth() + 1,
     d: shifted.getUTCDate(),
-    hour: shifted.getUTCHours(),
+    hour,
+    minuteOfDay: hour * 60 + shifted.getUTCMinutes(),
   };
 }
 
@@ -35,71 +64,55 @@ export function bangkokDateString(at: Date = new Date()): string {
 
 /**
  * เวรตามเวลาไทย
- *   เช้า 07:00–14:59 · บ่าย 15:00–22:59 · ดึก 23:00–06:59
+ *   เช้า 08.01–16.00 · บ่าย 16.01–00.00 · ดึก 00.01–08.00
  */
 export function currentShift(at: Date = new Date()): Shift {
-  const { hour } = bangkokParts(at);
-  if (hour >= 7 && hour < 15) return 'MORNING';
-  if (hour >= 15 && hour < 23) return 'AFTERNOON';
+  const { minuteOfDay } = bangkokParts(at);
+  if (minuteOfDay >= MORNING_START_MIN && minuteOfDay < AFTERNOON_START_MIN) return 'MORNING';
+  // นาที 00.00 เป็นนาทีสุดท้ายของเวรบ่ายที่เริ่มเมื่อวาน ไม่ใช่ต้นเวรดึก
+  if (minuteOfDay >= AFTERNOON_START_MIN || minuteOfDay < NIGHT_START_MIN) return 'AFTERNOON';
   return 'NIGHT';
-}
-
-/**
- * ช่วงเวลาของเวรปัจจุบัน ใช้ตรวจว่า episode ถูกประเมินในเวรนี้แล้วหรือยัง
- * เวรดึกคร่อมเที่ยงคืน จึงคำนวณจากจุดเริ่มย้อนหลังแทนการอิงวันที่
- */
-export function currentShiftWindow(at: Date = new Date()): { start: Date; end: Date } {
-  const { hour } = bangkokParts(at);
-  let startHour: number;
-  let durationHours: number;
-
-  if (hour >= 7 && hour < 15) {
-    startHour = 7;
-    durationHours = 8;
-  } else if (hour >= 15 && hour < 23) {
-    startHour = 15;
-    durationHours = 8;
-  } else {
-    startHour = 23;
-    durationHours = 8;
-  }
-
-  // หาเวลา 00:00 ของวันไทยปัจจุบันในหน่วย UTC
-  const { y, m, d } = bangkokParts(at);
-  const bangkokMidnightUtc = Date.UTC(y, m - 1, d) - BANGKOK_OFFSET_MS;
-
-  let start = bangkokMidnightUtc + startHour * 60 * 60 * 1000;
-  // เวรดึกช่วง 00:00–06:59 เริ่มตั้งแต่ 23:00 ของ "เมื่อวาน"
-  if (startHour === 23 && hour < 7) {
-    start -= 24 * 60 * 60 * 1000;
-  }
-
-  return {
-    start: new Date(start),
-    end: new Date(start + durationHours * 60 * 60 * 1000),
-  };
 }
 
 /**
  * ทั้งสามเวรของ "วันทำงานวันนี้" เรียงตามลำดับเวลา
  *
- * วันทำงานเริ่มที่เวรเช้า 07:00 และจบตอน 07:00 ของวันถัดไป
- * พยาบาลเวรดึกที่ดูตอนตีสองจึงยังเห็นวันเดียวกับที่ขึ้นเวรมา
+ * วันทำงานเริ่มที่เวรดึก 00.01 และจบตอน 00.00 ของวันถัดไป
+ * จึงตรงกับวันตามปฏิทินไทยที่พยาบาลเขียนในตารางเวร
  */
 export function todayShiftWindows(
   at: Date = new Date(),
 ): { shift: Shift; start: Date; end: Date }[] {
-  const { y, m, d, hour } = bangkokParts(at);
+  const { y, m, d, minuteOfDay } = bangkokParts(at);
   const midnightUtc = Date.UTC(y, m - 1, d) - BANGKOK_OFFSET_MS;
-  const HOUR = 60 * 60 * 1000;
-  // ก่อน 07:00 ยังอยู่ในวันทำงานที่เริ่มเมื่อวาน
-  const dayStart = hour < 7 ? midnightUtc - 24 * HOUR : midnightUtc;
+  // เวลา 00.00 พอดียังเป็นนาทีสุดท้ายของวันทำงานที่เริ่มเมื่อวาน
+  const base = minuteOfDay < NIGHT_START_MIN ? midnightUtc - DAY_MS : midnightUtc;
+
+  const window = (shift: Shift, startMin: number) => ({
+    shift,
+    start: new Date(base + startMin * MINUTE_MS),
+    end: new Date(base + (startMin + SHIFT_LENGTH_MIN) * MINUTE_MS),
+  });
 
   return [
-    { shift: 'MORNING', start: new Date(dayStart + 7 * HOUR), end: new Date(dayStart + 15 * HOUR) },
-    { shift: 'AFTERNOON', start: new Date(dayStart + 15 * HOUR), end: new Date(dayStart + 23 * HOUR) },
-    { shift: 'NIGHT', start: new Date(dayStart + 23 * HOUR), end: new Date(dayStart + 31 * HOUR) },
+    window('NIGHT', NIGHT_START_MIN),
+    window('MORNING', MORNING_START_MIN),
+    window('AFTERNOON', AFTERNOON_START_MIN),
   ];
+}
+
+/**
+ * ช่วงเวลาของเวรปัจจุบัน ใช้ตรวจว่า episode ถูกประเมินในเวรนี้แล้วหรือยัง
+ * เวรบ่ายจบที่ 00.00 จึงล้ำเข้าวันถัดไปหนึ่งนาที ต้องเผื่อกรณีนั้นด้วย
+ */
+export function currentShiftWindow(at: Date = new Date()): { start: Date; end: Date } {
+  const match = todayShiftWindows(at).find((w) => w.start <= at && at < w.end);
+  if (match) return { start: match.start, end: match.end };
+
+  // นาที 00.00 ตกอยู่ในเวรบ่ายของวันทำงานก่อนหน้า
+  const previous = todayShiftWindows(new Date(at.getTime() - DAY_MS));
+  const last = previous[previous.length - 1];
+  return { start: last.start, end: last.end };
 }
 
 // ── ช่วงเวลาสำหรับรายงาน ────────────────────────────────────────────
@@ -125,7 +138,7 @@ export function isPeriod(value: unknown): value is Period {
 /**
  * ช่วงเวลาที่ใช้สรุปรายงาน ตามเขตเวลาไทย
  *
- * รายวันใช้ขอบเขตเดียวกับวันทำงาน (07:00 ถึง 07:00 ของวันถัดไป)
+ * รายวันใช้ขอบเขตเดียวกับวันทำงาน (00.01 ถึง 00.00 ของวันถัดไป)
  * เพื่อให้ตัวเลขตรงกับหน้าติดตามความเสี่ยง ส่วนรายเดือนและรายปีใช้ขอบเขตปฏิทิน
  */
 export function periodWindow(

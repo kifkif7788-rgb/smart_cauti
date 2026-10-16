@@ -3,7 +3,7 @@ import { getSession, sourceForRole } from '@/lib/auth';
 import { getActiveStudy } from '@/lib/study';
 import { db } from '@/lib/db';
 import { maskHn } from '@/lib/hn';
-import { foleyDay, todayShiftWindows, SHIFT_LABEL_TH } from '@/lib/shift';
+import { foleyDay, todayShiftWindows, SHIFT_LABEL_TH, SHIFT_TIME_TH } from '@/lib/shift';
 import { AppHeader } from '@/components/AppHeader';
 import {
   awaitingDiagnosisEpisodes,
@@ -114,7 +114,7 @@ export default async function RiskPage() {
                     <div className="font-bold">
                       {SHIFT_LABEL_TH[row.shift]}{' '}
                       <span className="text-[12.5px] font-normal" style={{ color: 'var(--muted)' }}>
-                        {hhmm(row.start)}–{hhmm(row.end)}
+                        {SHIFT_TIME_TH[row.shift]}
                       </span>
                     </div>
                     <span
@@ -236,12 +236,3 @@ function RiskSection({
   );
 }
 
-
-/** เวลาแบบ HH:MM ตามเขตเวลาไทย */
-function hhmm(at: Date): string {
-  return at.toLocaleTimeString('th-TH', {
-    timeZone: 'Asia/Bangkok',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}

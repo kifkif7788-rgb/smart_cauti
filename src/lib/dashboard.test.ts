@@ -22,15 +22,32 @@ describe('passRateTrend', () => {
   const bkk = (iso: string) => new Date(`${iso}+07:00`);
   const row = (iso: string, all_pass: boolean) => ({ assessed_at: bkk(iso).toISOString(), all_pass });
 
-  it('รายวันแบ่งเป็นสามเวร', () => {
+  it('รายวันแบ่งเป็นสามเวร เรียงตามเวลาเริ่มที่เวรดึก', () => {
     const points = passRateTrend(
-      [row('2026-09-15T08:00:00', true), row('2026-09-15T09:00:00', false), row('2026-09-15T18:00:00', true)],
+      [
+        row('2026-09-15T03:00:00', true),
+        row('2026-09-15T09:00:00', false),
+        row('2026-09-15T12:00:00', true),
+        row('2026-09-15T18:00:00', true),
+      ],
       'day',
       bkk('2026-09-15T12:00:00'),
     );
-    expect(points.map((p) => p.label)).toEqual(['เวรเช้า', 'เวรบ่าย', 'เวรดึก']);
-    expect(points[0]).toMatchObject({ total: 2, passed: 1, percent: 50 });
-    expect(points[1]).toMatchObject({ total: 1, passed: 1, percent: 100 });
+    expect(points.map((p) => p.label)).toEqual(['เวรดึก', 'เวรเช้า', 'เวรบ่าย']);
+    expect(points[0]).toMatchObject({ total: 1, passed: 1, percent: 100 });
+    expect(points[1]).toMatchObject({ total: 2, passed: 1, percent: 50 });
+    expect(points[2]).toMatchObject({ total: 1, passed: 1, percent: 100 });
+  });
+
+  it('การประเมินตอน 08.00 พอดีนับเข้าเวรดึก ไม่ใช่เวรเช้า', () => {
+    // ตารางเวรเขียนเวรดึกไว้ 00.01–08.00 นาทีสุดท้ายจึงยังเป็นของเวรดึก
+    const points = passRateTrend(
+      [row('2026-09-15T08:00:00', true), row('2026-09-15T08:01:00', true)],
+      'day',
+      bkk('2026-09-15T12:00:00'),
+    );
+    expect(points[0]).toMatchObject({ label: 'เวรดึก', total: 1 });
+    expect(points[1]).toMatchObject({ label: 'เวรเช้า', total: 1 });
   });
 
   it('ช่วงที่ไม่มีการประเมินคืน null ไม่ใช่ศูนย์', () => {
