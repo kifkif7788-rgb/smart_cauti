@@ -73,7 +73,7 @@ export function DashboardView({ scope, kitUses, period, passTrend, wardCodes, li
         </div>
         <div className="surface mt-3 flex items-center gap-3 px-4 py-3">
           <UiIcon name="qr" width={22} height={22}/>
-          <span className="min-w-0 flex-1 text-[13px] font-bold">ใส่สายใหม่ (ชุดอุปกรณ์ที่ใช้)</span>
+          <span className="min-w-0 flex-1 text-[13px] font-bold">ชุดอุปกรณ์ที่ใช้</span>
           <strong className="text-[19px] tabular-nums" style={{ color: 'var(--primary)' }}>{kitUses}</strong>
           <span className="text-[12px]" style={{ color: 'var(--muted)' }}>ครั้ง{PERIOD_SCOPE[period]}</span>
         </div>
