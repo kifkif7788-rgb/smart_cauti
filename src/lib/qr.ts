@@ -116,3 +116,22 @@ export function bedNoFromTagCode(tagCode: string): number | null {
   const bed = Number(match[1]);
   return bed >= 1 && bed <= 99 ? bed : null;
 }
+
+/**
+ * ที่อยู่เว็บสำหรับฝังลง QR
+ *
+ * ใช้ NEXT_PUBLIC_BASE_URL ก่อนเพราะเป็นค่าที่ตั้งใจกำหนด แต่ถ้าไม่ได้ตั้งไว้
+ * ต้องถอยไปอ่านจาก header ของคำขอแทน มิฉะนั้น QR จะฝัง path แบบ relative
+ * ซึ่งสแกนแล้วไม่พาไปไหนเลย และกว่าจะรู้ก็ตอนที่ป้ายถูกพิมพ์ไปแล้ว
+ */
+export function resolveBaseUrl(headers: {
+  get(name: string): string | null;
+}): string {
+  const configured = process.env.NEXT_PUBLIC_BASE_URL?.trim();
+  if (configured) return configured.replace(/\/+$/, '');
+
+  const host = headers.get('x-forwarded-host') ?? headers.get('host');
+  if (!host) return '';
+  const proto = headers.get('x-forwarded-proto') ?? (host.startsWith('localhost') ? 'http' : 'https');
+  return `${proto}://${host}`;
+}

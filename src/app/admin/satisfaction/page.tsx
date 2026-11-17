@@ -1,8 +1,10 @@
+import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import QRCode from 'qrcode';
 import { canSeeSatisfaction, getSession } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { AppHeader } from '@/components/AppHeader';
+import { resolveBaseUrl } from '@/lib/qr';
 import { formatThaiDate, formatThaiTime } from '@/lib/shift';
 import {
   SATISFACTION_ITEMS,
@@ -32,8 +34,7 @@ export default async function AdminSatisfactionPage() {
   const overall = overallAverage(responses);
   const comments = responses.filter((r) => r.comment);
 
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? '';
-  const formUrl = `${baseUrl.replace(/\/+$/, '')}/satisfaction`;
+  const formUrl = `${resolveBaseUrl(await headers())}/satisfaction`;
   const qrSvg = await QRCode.toString(formUrl, {
     type: 'svg',
     errorCorrectionLevel: 'Q',

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 
 // ต้องตั้ง secret ก่อน import โมดูล เพราะอ่านค่าตอนเรียกใช้
 process.env.QR_SECRET = 'test-qr-secret-value-at-least-32-characters-long';
@@ -14,6 +14,7 @@ const {
   kitCodeForWard,
   wardPrefixFromCode,
   kitUrl,
+  resolveBaseUrl,
 } = await import('./qr');
 
 describe('ป้ายชุดอุปกรณ์ใส่สาย', () => {
@@ -160,5 +161,54 @@ describe('tagUrl', () => {
     // ป้ายติดอยู่ในตำแหน่งที่ผู้อื่นมองเห็นได้
     const url = tagUrl('SM-B01', 'https://cauti.example.th');
     expect(url).not.toMatch(/hn|HN|\d{7}/);
+  });
+});
+
+describe('resolveBaseUrl', () => {
+  const headers = (map: Record<string, string>) => ({
+    get: (name: string) => map[name.toLowerCase()] ?? null,
+  });
+  const ENV = process.env.NEXT_PUBLIC_BASE_URL;
+  afterEach(() => {
+    process.env.NEXT_PUBLIC_BASE_URL = ENV;
+  });
+
+  it('ใช้ค่าที่ตั้งไว้ก่อนเสมอ', () => {
+    process.env.NEXT_PUBLIC_BASE_URL = 'https://smartcauti.vercel.app';
+    expect(resolveBaseUrl(headers({ host: 'ไม่ควรถูกใช้' }))).toBe('https://smartcauti.vercel.app');
+  });
+
+  it('ตัด / ท้ายออก ไม่ให้เกิด // ใน URL ของ QR', () => {
+    process.env.NEXT_PUBLIC_BASE_URL = 'https://smartcauti.vercel.app/';
+    expect(resolveBaseUrl(headers({}))).toBe('https://smartcauti.vercel.app');
+  });
+
+  it('ถอยไปอ่านจาก header เมื่อไม่ได้ตั้ง env ไว้', () => {
+    // กรณีที่เคยทำให้ QR ฝัง path แบบ relative แล้วสแกนไม่ไปไหน
+    delete process.env.NEXT_PUBLIC_BASE_URL;
+    expect(resolveBaseUrl(headers({ host: 'smartcauti.vercel.app' }))).toBe(
+      'https://smartcauti.vercel.app',
+    );
+  });
+
+  it('เคารพ x-forwarded-host และ proto ที่ reverse proxy ส่งมา', () => {
+    delete process.env.NEXT_PUBLIC_BASE_URL;
+    expect(
+      resolveBaseUrl(
+        headers({ 'x-forwarded-host': 'cauti.hospital.go.th', 'x-forwarded-proto': 'https' }),
+      ),
+    ).toBe('https://cauti.hospital.go.th');
+  });
+
+  it('ใช้ http สำหรับ localhost ตอนพัฒนา', () => {
+    delete process.env.NEXT_PUBLIC_BASE_URL;
+    expect(resolveBaseUrl(headers({ host: 'localhost:3000' }))).toBe('http://localhost:3000');
+  });
+
+  it('env ที่เป็นช่องว่างล้วนถือว่าไม่ได้ตั้ง', () => {
+    process.env.NEXT_PUBLIC_BASE_URL = '   ';
+    expect(resolveBaseUrl(headers({ host: 'smartcauti.vercel.app' }))).toBe(
+      'https://smartcauti.vercel.app',
+    );
   });
 });
