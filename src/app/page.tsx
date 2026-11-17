@@ -1,7 +1,7 @@
 import { ScanHero, CareNote } from '@/components/Brand';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { getSession, canDiagnoseInfection, needsNurseLevel } from '@/lib/auth';
+import { getSession, canDiagnoseInfection, canSeeSatisfaction, needsNurseLevel } from '@/lib/auth';
 import { getActiveStudy } from '@/lib/study';
 import { db } from '@/lib/db';
 import { awaitingDiagnosisEpisodes } from '@/lib/awaiting-diagnosis';
@@ -40,6 +40,12 @@ export default async function HomePage() {
           .select('request_id', { count: 'exact', head: true })
           .eq('status', 'OPEN')
       : { count: 0 };
+  // นับผู้ตอบแบบสอบถามเฉพาะคนที่เปิดหน้าผลได้ คนอื่นไม่ต้องจ่ายค่า query นี้
+  const { count: satisfactionCount } = canSeeSatisfaction(session.role)
+    ? await db()
+        .from('satisfaction_response')
+        .select('response_id', { count: 'exact', head: true })
+    : { count: 0 };
   const nurseLevel = await resolveNurseLevel(session);
 
   return (
@@ -128,6 +134,26 @@ export default async function HomePage() {
             <UiIcon name="message" width={22} height={22} />
             <span className="flex-1 text-[13px] font-bold" style={{ color: 'var(--correct)' }}>
               มีเรื่องรอดำเนินการ {openRequests} เรื่อง
+            </span>
+            <UiIcon name="arrow" width={18} height={18} />
+          </Link>
+        )}
+
+        {/* ── ความพึงพอใจต่อผลงาน ────────────────────────────── */}
+        {/* เฉพาะทีมที่นำผลงานไปนำเสนอ ไม่ใช่งานประจำเวรของพยาบาลข้างเตียง */}
+        {canSeeSatisfaction(session.role) && (
+          <Link
+            href="/admin/satisfaction"
+            className="surface mt-6 flex items-center gap-3 px-4 py-3.5"
+          >
+            <UiIcon name="chart" width={22} height={22} />
+            <span className="min-w-0 flex-1">
+              <span className="block text-[14px] font-bold">ความพึงพอใจต่อผลงาน</span>
+              <span className="block text-[12.5px]" style={{ color: 'var(--muted)' }}>
+                {(satisfactionCount ?? 0) > 0
+                  ? `ผู้ตอบแล้ว ${satisfactionCount} คน · QR สำหรับติดที่บูธ`
+                  : 'ยังไม่มีผู้ตอบ · QR สำหรับติดที่บูธ'}
+              </span>
             </span>
             <UiIcon name="arrow" width={18} height={18} />
           </Link>
