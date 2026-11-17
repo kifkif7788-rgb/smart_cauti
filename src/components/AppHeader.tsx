@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { UiIcon } from './UiIcon';
 import { LogoutButton } from './LogoutButton';
-import { getSession, canDiagnoseInfection } from '@/lib/auth';
+import { getSession, canDiagnoseInfection, canSeeSatisfaction } from '@/lib/auth';
 
 interface Props {
   title?: string;
@@ -26,6 +26,9 @@ export async function AppHeader({ title, backHref, subtitle }: Props) {
                 <Link href="/admin/users"><UiIcon name="user"/>บัญชีผู้ใช้</Link>
                 <Link href="/admin/support"><UiIcon name="message"/>เรื่องที่แจ้งเข้ามา</Link>
               </>
+            )}
+            {session && canSeeSatisfaction(session.role) && (
+              <Link href="/admin/satisfaction"><UiIcon name="chart"/>ความพึงพอใจต่อผลงาน</Link>
             )}
             <Link href="/scan"><UiIcon name="arrow"/>สแกน QR</Link>
             {session && canDiagnoseInfection(session.role) && (

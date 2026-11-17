@@ -27,6 +27,18 @@ export function canDiagnoseInfection(role: UserRole): boolean {
 }
 
 /**
+ * ใครดูผลแบบสอบถามความพึงพอใจต่อผลงานได้
+ *
+ * เป็นเรื่องของทีมที่นำเสนอผลงาน ไม่ใช่งานประจำเวร
+ * หัวหน้าหอรวมอยู่ด้วยเพราะเป็นเจ้าของผลงานที่นำไปนำเสนอ
+ */
+const SATISFACTION_ROLES: readonly UserRole[] = ['IC_NURSE', 'WARD_HEAD', 'ADMIN'];
+
+export function canSeeSatisfaction(role: UserRole): boolean {
+  return SATISFACTION_ROLES.includes(role);
+}
+
+/**
  * ส่วนของ dashboard ที่แต่ละ role เห็น
  *
  *  FULL  ภาพรวมทั้งหมด รวมสัดส่วนการปฏิบัติตาม bundle และผู้ประเมินแยก RN/NA

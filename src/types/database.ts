@@ -136,6 +136,14 @@ export type KitUsageRow = {
   created_at: string;
 }
 
+export type SatisfactionResponseRow = {
+  response_id: string;
+  scores: number[];
+  comment: string | null;
+  client_uuid: string;
+  submitted_at: string;
+}
+
 export type CorrectiveActionRow = {
   action_id: string;
   assessment_id: string;
@@ -244,6 +252,7 @@ export interface Database {
       infection_symptom: Table<InfectionSymptomRow>;
       support_request: Table<SupportRequestRow>;
       kit_usage: Table<KitUsageRow>;
+      satisfaction_response: Table<SatisfactionResponseRow>;
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

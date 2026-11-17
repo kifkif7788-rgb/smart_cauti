@@ -28,6 +28,7 @@ export type { UserRole } from './auth-roles';
 export {
   canAlwaysSeeDashboard,
   canDiagnoseInfection,
+  canSeeSatisfaction,
   dashboardScope,
   needsNurseLevel,
   sourceForRole,
