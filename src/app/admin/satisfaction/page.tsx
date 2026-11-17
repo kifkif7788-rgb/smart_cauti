@@ -34,8 +34,10 @@ export default async function AdminSatisfactionPage() {
   const overall = overallAverage(responses);
   const comments = responses.filter((r) => r.comment);
 
-  const formUrl = `${resolveBaseUrl(await headers())}/satisfaction`;
-  const qrSvg = await QRCode.toString(formUrl, {
+  // QR พาไปหน้าทดลองใช้ก่อน ไม่ใช่แบบสอบถามโดยตรง
+  // ผู้เยี่ยมชมจะได้ลองกดใช้งานจริงก่อนให้คะแนน คะแนนจึงมาจากคนที่ได้ลองใช้
+  const demoUrl = `${resolveBaseUrl(await headers())}/demo`;
+  const qrSvg = await QRCode.toString(demoUrl, {
     type: 'svg',
     errorCorrectionLevel: 'Q',
     margin: 2,
@@ -70,7 +72,8 @@ export default async function AdminSatisfactionPage() {
         <section className="surface mt-3 px-4 py-4">
           <h2 className="text-base font-extrabold">QR สำหรับติดที่บูธ</h2>
           <p className="mt-1 text-[12.5px] leading-relaxed" style={{ color: 'var(--muted)' }}>
-            ผู้เยี่ยมชมสแกนแล้วตอบได้เลยโดยไม่ต้องล็อกอิน สั่งพิมพ์หน้านี้เพื่อนำไปติดได้
+            ผู้เยี่ยมชมสแกนแล้วได้ทดลองใช้แอปด้วยข้อมูลสมมติก่อน แล้วจึงกดไปตอบแบบสอบถาม
+            ไม่ต้องล็อกอินและไม่เห็นข้อมูลผู้ป่วยจริง สั่งพิมพ์หน้านี้เพื่อนำไปติดได้
           </p>
           <div className="mt-3 flex flex-col items-center gap-2">
             <div
@@ -78,7 +81,7 @@ export default async function AdminSatisfactionPage() {
               dangerouslySetInnerHTML={{ __html: qrSvg }}
             />
             <code className="text-[12px] break-all text-center" style={{ color: 'var(--muted)' }}>
-              {formUrl}
+              {demoUrl}
             </code>
           </div>
         </section>
