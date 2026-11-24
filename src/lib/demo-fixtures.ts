@@ -7,6 +7,7 @@
  */
 
 import type { AssessmentRow, EpisodeRow } from '@/types/database';
+import type { AssessorTally } from '@/lib/dashboard';
 
 export const DEMO_WARD = 'หอผู้ป่วยตัวอย่าง';
 
@@ -88,3 +89,15 @@ export const DEMO_PASS_TREND = [
 ];
 
 export const DEMO_CHART_COLORS = ['#2ebd87', '#389df4', '#ffbe2b', '#9770e4', '#ef7e9f'];
+
+/**
+ * ผู้ประเมินสมมติสำหรับแดชบอร์ดในหน้าทดลองใช้
+ *
+ * ชื่อและรหัสต้องดูออกทันทีว่าไม่ใช่เจ้าหน้าที่จริง เพราะผู้เยี่ยมชมบูธ
+ * ไม่มีทางรู้เองว่ารายชื่อที่เห็นเป็นของจริงหรือของสมมติ
+ */
+export const DEMO_ASSESSORS: AssessorTally[] = [
+  { employeeId: 'DEMO-01', fullName: 'พยาบาลตัวอย่าง หนึ่ง', level: 'RN', count: 4 },
+  { employeeId: 'DEMO-02', fullName: 'ผู้ช่วยตัวอย่าง สอง', level: 'NA', count: 3 },
+  { employeeId: 'DEMO-03', fullName: 'พยาบาลตัวอย่าง สาม', level: 'RN', count: 2 },
+];

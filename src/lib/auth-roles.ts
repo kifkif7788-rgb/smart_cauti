@@ -39,6 +39,20 @@ export function canSeeSatisfaction(role: UserRole): boolean {
 }
 
 /**
+ * ใครเห็นชื่อผู้ประเมินรายคนในภาพรวม
+ *
+ * ตัวเลขรวมแยก RN/NA บอกภาพการปฏิบัติ แต่การกำกับคุณภาพต้องรู้ว่าใครประเมิน
+ * จึงจะตามไปสอนหรือช่วยคนที่ยังติดขัดได้ ส่วน AUDITOR ไม่อยู่ในกลุ่มนี้
+ * เพราะเป็นผู้ประเมินฝ่ายวิจัยที่อยู่นอกสายบังคับบัญชาของหอผู้ป่วย
+ * การเห็นสถิติรายบุคคลของเจ้าหน้าที่จึงไม่ใช่สิ่งที่บทบาทนั้นต้องใช้
+ */
+const ASSESSOR_NAME_ROLES: readonly UserRole[] = ['IC_NURSE', 'WARD_HEAD', 'ADMIN'];
+
+export function canSeeAssessorNames(role: UserRole): boolean {
+  return ASSESSOR_NAME_ROLES.includes(role);
+}
+
+/**
  * ส่วนของ dashboard ที่แต่ละ role เห็น
  *
  *  FULL  ภาพรวมทั้งหมด รวมสัดส่วนการปฏิบัติตาม bundle และผู้ประเมินแยก RN/NA

@@ -7,6 +7,7 @@ import { DashboardView } from '@/components/DashboardView';
 import { UiIcon } from '@/components/UiIcon';
 import { evaluateCheck5 } from '@/lib/check5';
 import {
+  DEMO_ASSESSORS,
   DEMO_CHART_COLORS,
   DEMO_EPISODE_FOR_FORM,
   DEMO_PASS_TREND,
@@ -109,7 +110,7 @@ export default async function DemoPage(props: PageProps<'/demo'>) {
       )}
 
       {screen === 'dashboard' && (
-        <DashboardView
+        <DashboardView assessors={DEMO_ASSESSORS}
           scope="FULL"
           kitUses={4}
           period="day"

@@ -1,7 +1,7 @@
 import { DashboardView } from '@/components/DashboardView';
-import { foleyTrend, passRateTrend } from '@/lib/dashboard';
+import { foleyTrend, passRateTrend, assessorTally } from '@/lib/dashboard';
 import { redirect } from 'next/navigation';
-import { getSession, dashboardScope } from '@/lib/auth';
+import { getSession, dashboardScope, canSeeAssessorNames } from '@/lib/auth';
 import { getActiveStudy } from '@/lib/study';
 import { db } from '@/lib/db';
 import type { AssessmentRow } from '@/types/database';
@@ -61,6 +61,16 @@ export default async function DashboardPage(props: PageProps<'/dashboard'>) {
   const peak = Math.max(1, ...trend.map(p => p.count));
   const longStay = list.filter((e) => foleyDay(e.insert_date) > 3);
 
+  // ใครเป็นผู้ประเมินในช่วงนี้ — ชื่อกับรหัสพนักงานอยู่ในตาราง app_user
+  // ดึงเฉพาะบัญชีที่ประเมินจริงในช่วงนั้น ไม่ดึงรายชื่อทั้งหอมาทั้งก้อน
+  const assessorIds = [...new Set(rows.map((a) => a.assessor_id))];
+  const { data: assessorUsers } = canSeeAssessorNames(session.role) && assessorIds.length
+    ? await db().from('app_user').select('user_id, employee_id, full_name').in('user_id', assessorIds)
+    : { data: [] };
+  const assessors = canSeeAssessorNames(session.role)
+    ? assessorTally(rows, assessorUsers ?? [])
+    : [];
+
   // จำนวนครั้งที่ใช้ชุดอุปกรณ์ใส่สาย = จำนวนการใส่สายในช่วงนั้น
   // ใช้เป็นตัวส่วนของอัตรา CAUTI ได้ จึงแสดงคู่กับตัวเลขอื่นของช่วงเดียวกัน
   const { count: kitUses } = scope === 'FULL'
@@ -72,5 +82,5 @@ export default async function DashboardPage(props: PageProps<'/dashboard'>) {
         .lt('used_at', end.toISOString())
     : { count: 0 };
 
-  return <DashboardView scope={scope} kitUses={kitUses ?? 0} period={period} passTrend={passTrend} wardCodes={wardCodes} list={list} rows={rows} pass={pass} correct={correct} review={review} percent={percent} colors={colors} trend={trend} peak={peak} longStay={longStay} historyError={Boolean(historyError)} />;
+  return <DashboardView scope={scope} assessors={assessors} kitUses={kitUses ?? 0} period={period} passTrend={passTrend} wardCodes={wardCodes} list={list} rows={rows} pass={pass} correct={correct} review={review} percent={percent} colors={colors} trend={trend} peak={peak} longStay={longStay} historyError={Boolean(historyError)} />;
 }

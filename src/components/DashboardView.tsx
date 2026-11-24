@@ -3,8 +3,8 @@ import { UiIcon } from './UiIcon';
 import { DashboardRefresh } from './DashboardRefresh';
 import { AppHeader } from './AppHeader';
 import { PERIOD_LABEL, PERIOD_SCOPE, type Period } from '@/lib/shift';
-import type { PassRatePoint } from '@/lib/dashboard';
-import { CHECK5_ITEMS } from '@/lib/check5';
+import type { PassRatePoint, AssessorTally } from '@/lib/dashboard';
+import { CHECK5_ITEMS, NURSE_LEVEL } from '@/lib/check5';
 import { foleyDay } from '@/lib/shift';
 import type { AssessmentRow, EpisodeRow } from '@/types/database';
 import type { DashboardScope } from '@/lib/auth-roles';
@@ -12,6 +12,8 @@ import type { DashboardScope } from '@/lib/auth-roles';
 interface Props {
   /** CARE = เห็นเฉพาะส่วนที่ใช้ดูแลผู้ป่วยตรงหน้า ดู dashboardScope() */
   scope: DashboardScope;
+  /** ผู้ประเมินรายคน — ว่างเมื่อ role นั้นไม่เห็นชื่อ ดู canSeeAssessorNames() */
+  assessors: AssessorTally[];
   /** จำนวนครั้งที่ใช้ชุดอุปกรณ์ใส่สายในช่วงที่เลือก = จำนวนการใส่สาย */
   kitUses: number;
   period: Period;
@@ -30,7 +32,7 @@ interface Props {
   historyError: boolean;
 }
 
-export function DashboardView({ scope, kitUses, period, passTrend, wardCodes, list, rows, pass, correct, review, percent, colors, trend, peak, longStay, historyError }: Props) {
+export function DashboardView({ scope, assessors, kitUses, period, passTrend, wardCodes, list, rows, pass, correct, review, percent, colors, trend, peak, longStay, historyError }: Props) {
   const passedAll = rows.filter((a) => a.all_pass).length;
 
   // แถวเก่าก่อนมีการเก็บคุณวุฒิจะเป็น null จึงแยกไว้เป็นกลุ่มของตัวเอง
@@ -120,6 +122,49 @@ export function DashboardView({ scope, kitUses, period, passTrend, wardCodes, li
               color: b.color,
             }))}
           />
+
+          {/* ── รายชื่อผู้ประเมิน ──────────────────────────────── */}
+          {/* ตัวเลขรวมบอกแค่จำนวน การตามไปช่วยคนที่ยังติดขัดต้องรู้ว่าใคร */}
+          {assessors.length > 0 && (
+            <>
+              <div className="mt-5 text-[13.5px] font-extrabold">ผู้ประเมินรายคน</div>
+              <p className="dashboard-subtitle">
+                รหัสพนักงานและชื่อของผู้ที่ลงมือประเมิน{PERIOD_SCOPE[period]}
+              </p>
+              <ul className="mt-1">
+                {assessors.map((person) => (
+                  <li
+                    key={`${person.employeeId}-${person.level ?? 'none'}`}
+                    className="flex items-center gap-2.5 py-2"
+                    style={{ borderTop: '1px solid var(--border)' }}
+                  >
+                    <span
+                      className="shrink-0 rounded-md px-2 py-0.5 text-[11px] font-extrabold"
+                      style={LEVEL_BADGE[person.level ?? 'none']}
+                      title={person.level ? NURSE_LEVEL[person.level] : 'ไม่ระบุคุณวุฒิ'}
+                    >
+                      {person.level ?? '—'}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[13.5px] font-bold">
+                        {person.fullName}
+                      </span>
+                      <span
+                        className="block text-[12px] tabular-nums"
+                        style={{ color: 'var(--muted)' }}
+                      >
+                        รหัส {person.employeeId}
+                      </span>
+                    </span>
+                    <strong className="shrink-0 text-[15px] tabular-nums">{person.count}</strong>
+                    <span className="shrink-0 text-[12px]" style={{ color: 'var(--muted)' }}>
+                      ครั้ง
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
         </section>
 
         </>)}
@@ -170,6 +215,13 @@ export function DashboardView({ scope, kitUses, period, passTrend, wardCodes, li
     </>
   );
 }
+
+/** ป้ายคุณวุฒิ — ใช้สีชุดเดียวกับหน้าบัญชีผู้ใช้ให้จำได้ว่าหมายถึงอะไร */
+const LEVEL_BADGE: Record<'RN' | 'NA' | 'none', { background: string; color: string }> = {
+  RN: { background: 'var(--surface-2)', color: 'var(--primary)' },
+  NA: { background: 'var(--pass-bg)', color: 'var(--pass)' },
+  none: { background: 'var(--border)', color: 'var(--muted)' },
+};
 
 /** แท่งเทียบจำนวน ใช้สเกลเดียวกันทุกแท่งเพื่อให้เทียบด้วยสายตาได้ */
 function CountBars({
