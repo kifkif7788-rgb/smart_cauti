@@ -27,6 +27,7 @@ const KEY_LENGTH = 32;
 export type { UserRole } from './auth-roles';
 export {
   canAlwaysSeeDashboard,
+  canPrintTags,
   canSeeAssessorNames,
   canDiagnoseInfection,
   canSeeSatisfaction,

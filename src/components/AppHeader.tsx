@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { UiIcon } from './UiIcon';
 import { LogoutButton } from './LogoutButton';
-import { getSession, canDiagnoseInfection, canSeeSatisfaction } from '@/lib/auth';
+import { getSession, canDiagnoseInfection, canPrintTags, canSeeSatisfaction } from '@/lib/auth';
 
 interface Props {
   title?: string;
@@ -20,9 +20,11 @@ export async function AppHeader({ title, backHref, subtitle }: Props) {
           <summary aria-label="เปิดเมนู"><UiIcon name="menu"/></summary>
           <nav aria-label="เมนูหลัก">
             <Link href="/"><UiIcon name="home"/>หน้าหลัก</Link>
+            {canPrintTags(session.role) && (
+              <Link href="/admin/tags"><UiIcon name="qr"/>สร้าง QR</Link>
+            )}
             {session.role === 'ADMIN' && (
               <>
-                <Link href="/admin/tags"><UiIcon name="qr"/>สร้าง QR</Link>
                 <Link href="/admin/users"><UiIcon name="user"/>บัญชีผู้ใช้</Link>
                 <Link href="/admin/support"><UiIcon name="message"/>เรื่องที่แจ้งเข้ามา</Link>
               </>

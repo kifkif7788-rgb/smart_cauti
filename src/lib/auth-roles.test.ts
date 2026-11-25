@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canSeeAssessorNames, dashboardScope, type UserRole } from './auth-roles';
+import { canPrintTags, canSeeAssessorNames, dashboardScope, type UserRole } from './auth-roles';
 
 const ALL_ROLES: UserRole[] = ['NURSE', 'AUDITOR', 'WARD_HEAD', 'IC_NURSE', 'ADMIN'];
 
@@ -21,5 +21,19 @@ describe('canSeeAssessorNames', () => {
     for (const role of ALL_ROLES.filter(canSeeAssessorNames)) {
       expect(dashboardScope(role)).toBe('FULL');
     }
+  });
+});
+
+describe('canPrintTags', () => {
+  it('ผู้ที่ดูแลป้ายในหอผู้ป่วยพิมพ์ป้ายได้', () => {
+    expect(canPrintTags('IC_NURSE')).toBe(true);
+    expect(canPrintTags('WARD_HEAD')).toBe(true);
+    expect(canPrintTags('ADMIN')).toBe(true);
+  });
+
+  it('พยาบาลข้างเตียงและผู้ประเมินฝ่ายวิจัยพิมพ์ป้ายเองไม่ได้', () => {
+    // ป้ายซ้ำทำให้เตียงหนึ่งมีหลายใบ แล้วไม่รู้ว่าใบไหนเป็นใบที่ใช้อยู่
+    expect(canPrintTags('NURSE')).toBe(false);
+    expect(canPrintTags('AUDITOR')).toBe(false);
   });
 });

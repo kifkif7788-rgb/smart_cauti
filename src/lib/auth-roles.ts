@@ -39,6 +39,19 @@ export function canSeeSatisfaction(role: UserRole): boolean {
 }
 
 /**
+ * ใครเปิดแผ่นพิมพ์ป้าย QR ได้
+ *
+ * ป้ายผูกกับเตียงไม่ผูกกับผู้ป่วย จึงไม่มีข้อมูลผู้ป่วยในหน้านี้
+ * สิ่งที่ต้องคุมคือการพิมพ์ป้ายซ้ำโดยไม่มีใครรู้ ซึ่งทำให้เตียงหนึ่งมีป้าย
+ * หลายใบปนกัน จึงจำกัดไว้ที่ผู้ที่ดูแลป้ายในหอผู้ป่วยจริง
+ */
+const TAG_PRINT_ROLES: readonly UserRole[] = ['IC_NURSE', 'WARD_HEAD', 'ADMIN'];
+
+export function canPrintTags(role: UserRole): boolean {
+  return TAG_PRINT_ROLES.includes(role);
+}
+
+/**
  * ใครเห็นชื่อผู้ประเมินรายคนในภาพรวม
  *
  * ตัวเลขรวมแยก RN/NA บอกภาพการปฏิบัติ แต่การกำกับคุณภาพต้องรู้ว่าใครประเมิน

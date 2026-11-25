@@ -1,8 +1,9 @@
 import { redirect } from 'next/navigation';
 import QRCode from 'qrcode';
-import { getSession } from '@/lib/auth';
+import { headers } from 'next/headers';
+import { getSession, canPrintTags } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { tagUrl, kitUrl, kitCodeForWard, wardPrefixFromCode } from '@/lib/qr';
+import { tagUrl, kitUrl, kitCodeForWard, wardPrefixFromCode, resolveBaseUrl } from '@/lib/qr';
 import { getActiveStudy } from '@/lib/study';
 import { TagPicker, type TagCard } from './TagPicker';
 import { AppHeader } from '@/components/AppHeader';
@@ -19,7 +20,7 @@ import styles from './tags.module.css';
 export default async function TagSheetPage() {
   const session = await getSession();
   if (!session) redirect('/login');
-  if (session.role !== 'ADMIN' && session.role !== 'WARD_HEAD') redirect('/');
+  if (!canPrintTags(session.role)) redirect('/');
 
   const study = await getActiveStudy();
   const wardCodes = session.wardCodes.length > 0 ? session.wardCodes : [study.ward_code];
@@ -32,7 +33,10 @@ export default async function TagSheetPage() {
 
   if (error) throw new Error('โหลดป้าย QR ไม่สำเร็จ กรุณาลองใหม่');
 
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? '';
+  // ถอยไปอ่านที่อยู่จาก request header เมื่อไม่ได้ตั้ง NEXT_PUBLIC_BASE_URL ไว้
+  // ถ้าใช้ค่าว่าง QR จะเก็บแค่ /s/SM-B01?k=... ซึ่งเป็น path ไม่ใช่ URL
+  // เครื่องสแกนเปิดไม่ได้ และจะรู้ก็ต่อเมื่อพิมพ์ป้ายไปติดที่เตียงแล้ว
+  const baseUrl = resolveBaseUrl(await headers());
 
   const sorted = (tags ?? []).sort((a, b) => Number(a.bed_no) - Number(b.bed_no));
 
@@ -84,6 +88,8 @@ export default async function TagSheetPage() {
     : null;
 
   const usingLocalhost = baseUrl.includes('localhost');
+  // อ่านที่อยู่ไม่ได้เลย — ป้ายที่พิมพ์จะสแกนไม่ได้ ต้องเตือนก่อนสั่งพิมพ์
+  const missingBaseUrl = baseUrl === '';
 
   return (
     <div className={styles.page}>
@@ -102,6 +108,13 @@ export default async function TagSheetPage() {
           <div className={styles.heroMark}><ShieldMark /></div>
         </section>
 
+        {missingBaseUrl && (
+          <div className={`${styles.warning} ${styles.screenOnly}`} role="alert">
+            <strong>ยังพิมพ์ป้ายไม่ได้</strong>
+            <p>ระบบอ่านที่อยู่เว็บไม่ได้ QR จะเก็บเพียงเส้นทางภายในและสแกนไม่ขึ้นหน้าใด กรุณาตั้ง NEXT_PUBLIC_BASE_URL ก่อนพิมพ์</p>
+          </div>
+        )}
+
         {usingLocalhost && (
           <div className={`${styles.warning} ${styles.screenOnly}`} role="alert">
             <strong>ตรวจสอบที่อยู่เว็บก่อนพิมพ์</strong>
@@ -112,6 +125,10 @@ export default async function TagSheetPage() {
         <TagPicker beds={cards} kit={kitCard} />
 
         <p className={`${styles.privacyNote} ${styles.screenOnly}`}>ป้ายผูกกับเตียง ไม่ผูกกับผู้ป่วย · QR บรรจุเฉพาะรหัสเตียงและลายเซ็นตรวจสอบ ไม่มีข้อมูลผู้ป่วย</p>
+        {/* บอกที่อยู่ที่ QR ใช้จริง เพื่อตรวจก่อนพิมพ์โดยไม่ต้องสแกนทีละใบ */}
+        {baseUrl !== '' && (
+          <p className={`${styles.privacyNote} ${styles.screenOnly}`}>QR ในแผ่นนี้ชี้ไปที่ {baseUrl}</p>
+        )}
       </main>
     </div>
   );
